@@ -3,13 +3,19 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Outputs the average value of the transferredStudents field for all items in
@@ -32,11 +38,24 @@ public class AverageOfTSCommand extends Command {
 		} else {
 			super.args = args;
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				if (env.getCollection().isEmpty()) {
-					throw new CommandRunningException("Collection is empty!");
+				try {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+					if (rs.getInt(1) == 0) {
+						throw new CommandRunningException("Collection is empty!");
+					}
+					stmt = con.prepareStatement(DbUtils.averageOfTs());
+					rs = stmt.executeQuery();
+					rs.next();
+					double a = rs.getDouble(1);
+					((PrintStream) outStream).println("The average value of transferred students is " + String.format("%.2f", a));
+					con.close();
+				} catch (SQLException e) {
+					throw new CommandSQLException(e.getMessage());
 				}
-				double a = env.getCollection().stream().mapToLong((l) -> l.getTransferredStudents()).average().orElse(0);
-				((PrintStream) outStream).println("The average value of transferred students is " + a);
 			}
 		}
 	}

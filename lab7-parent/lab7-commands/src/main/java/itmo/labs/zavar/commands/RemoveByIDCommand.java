@@ -3,14 +3,19 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.NoSuchElementException;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Deletes an item from the collection by its id. Requires ID.
@@ -40,18 +45,30 @@ public class RemoveByIDCommand extends Command {
 				throw new CommandRunningException("Unexcepted error! " + e.getMessage());
 			}
 
-			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				if (env.getCollection().isEmpty()) {
-					throw new CommandRunningException("Collection is empty!");
+			try {
+				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+					if (rs.getInt(1) == 0) {
+						throw new CommandRunningException("Collection is empty!");
+					}
+					try {
+						stmt = con.prepareStatement(DbUtils.deleteById(id));
+						if (stmt.executeUpdate() == 0) {
+							((PrintStream) outStream).println("No such element!");
+						} else {
+							((PrintStream) outStream).println("Element deleted!");
+						}
+					} catch (Exception e) {
+						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					}
+					con.close();
 				}
-				try {
-					env.getCollection().remove(env.getCollection().stream().filter((p) -> p.getId() == id).findFirst().orElseThrow(NoSuchElementException::new));
-					((PrintStream) outStream).println("Element deleted!");
-				} catch (NoSuchElementException e) {
-					((PrintStream) outStream).println("No such element!");
-				} catch (Exception e) {
-					throw new CommandRunningException("Unexcepted error! " + e.getMessage());
-				}
+			} catch (SQLException e) {
+				throw new CommandSQLException(e.getMessage());
 			}
 		}
 	}

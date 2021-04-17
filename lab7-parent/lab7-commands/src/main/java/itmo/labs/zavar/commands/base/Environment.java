@@ -17,7 +17,6 @@ import itmo.labs.zavar.studygroup.StudyGroup;
 public class Environment {
 	private HashMap<String, Command> map;
 	private History history;
-	private Stack<StudyGroup> stack;
 	private DataBaseManager db;
 
 	/**
@@ -29,13 +28,16 @@ public class Environment {
 	 * @param map   Commands' map.
 	 * @param stack Main collection.
 	 */
-	public Environment(DataBaseManager db, HashMap<String, Command> map, Stack<StudyGroup> stack) {
+	public Environment(DataBaseManager db, HashMap<String, Command> map) {
 		this.map = map;
-		this.stack = stack;
 		history = new History();
 		this.db = db;
 	}
-	
+	/**
+	 * Returns DataBaseManager to get connection with database
+	 * 
+	 * @return DataBaseManager
+	 */
 	public DataBaseManager getDbManager() {
 		return db;
 	}
@@ -59,15 +61,11 @@ public class Environment {
 		return map;
 	}
 
-	/**
-	 * Returns main collection.
-	 * 
-	 * @return {@link Stack}
-	 */
 	public Stack<StudyGroup> getCollection() {
-		return stack;
-	}
+		return null;
 
+	}
+	
 	/**
 	 * Returns history.
 	 * 

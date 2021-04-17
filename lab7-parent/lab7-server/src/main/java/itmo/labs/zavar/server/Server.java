@@ -8,7 +8,6 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
-import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -39,11 +38,9 @@ import itmo.labs.zavar.commands.base.Command.ExecutionType;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.db.DataBaseManager;
 import itmo.labs.zavar.exception.CommandException;
-import itmo.labs.zavar.studygroup.StudyGroup;
 
 public class Server {
 	
-	private static Stack<StudyGroup> stack = new Stack<StudyGroup>();
 	private static HashMap<String, Command> clientsCommandsMap = new HashMap<String, Command>();
 	private static HashMap<String, Command> internalCommandsMap = new HashMap<String, Command>();
 	
@@ -168,6 +165,6 @@ public class Server {
 		internalCommandsMap.putAll(clientsCommandsMap);
 		ExitCommand.register(internalCommandsMap);
 		
-		return new Environment[] { new Environment(db, clientsCommandsMap, stack),  new Environment(db, internalCommandsMap, stack)};
+		return new Environment[] { new Environment(db, clientsCommandsMap),  new Environment(db, internalCommandsMap)};
 	}
 }
