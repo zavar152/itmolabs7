@@ -1,8 +1,13 @@
 package itmo.labs.zavar.server;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.AsynchronousSocketChannel;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,11 +19,15 @@ public class ClientHandler implements Callable<String> {
 
 	private AsynchronousSocketChannel asyncChannel;
 	private Environment clientEnv;
+	private ExecutorService clientExecutor;
+	private ForkJoinPool clientWriter;
 	private Logger logger = LogManager.getLogger(ClientHandler.class.getName());
 
-	public ClientHandler(AsynchronousSocketChannel asyncChannel, Environment clientEnv) {
+	public ClientHandler(AsynchronousSocketChannel asyncChannel, Environment clientEnv, ExecutorService clientExecutor, ForkJoinPool clientWriter) {
 		this.asyncChannel = asyncChannel;
 		this.clientEnv = clientEnv;
+		this.clientExecutor = clientExecutor;
+		this.clientWriter = clientWriter;
 	}
 
 	@Override
@@ -34,9 +43,19 @@ public class ClientHandler implements Callable<String> {
 				CommandPackage per = ClientReader.read(buffer);
 				logger.info("Command from " + host.replace("/", "") + ": " + per.getName());
 				
-				ByteBuffer outBuffer = ClientCommandExecutor.executeCommand(per, clientEnv);
+				Future<ByteBuffer> futureOutBuffer = clientExecutor.submit(() -> {
+					return ClientCommandExecutor.executeCommand(per, clientEnv);
+				});
 
-				ClientWriter.write(asyncChannel, outBuffer);
+				ByteBuffer outBuffer = futureOutBuffer.get();
+				
+				clientWriter.submit(() -> {
+					try {
+						ClientWriter.write(asyncChannel, outBuffer);
+					} catch (InterruptedException | ExecutionException | IOException e) {
+						logger.error("Error while writing output to " + host.replace("/", ""));
+					}
+				});
 				
 				logger.info("Send command's output to " + host.replace("/", ""));
 				
@@ -45,7 +64,7 @@ public class ClientHandler implements Callable<String> {
 				buffer.clear();
 
 			} catch (Exception e) {
-				e.printStackTrace();
+				logger.error("Error while handling " + host.replace("/", ""));
 			}
 		}
 

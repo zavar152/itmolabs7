@@ -35,6 +35,34 @@ public class InfoCommand extends Command {
 				pr.println("Type: " + env.getCollection().getClass().getName());
 				pr.println("Creation date: N/A");
 				pr.println("Count of elements: " + env.getCollection().size());
+				
+				/*ResultSet rs = null;
+				try {
+					Connection con = env.getDbManager().getConnection();
+					Statement stmt;
+					stmt = con.createStatement();
+					rs = stmt.executeQuery(DbUtils.loadAll());
+					//rs = 
+					while (rs.next()) {
+						long id = rs.getLong("id");
+						String name = rs.getString("name");
+						Coordinates coordinates = new Coordinates(rs.getDouble("x"), rs.getFloat("y"));
+						Long studentsCount = rs.getLong("studentsCount");
+						int expelledStudents = rs.getInt("expelledStudents");
+						long transferredStudents = rs.getLong("transferredStudents");
+						FormOfEducation formOfEducation = FormOfEducation.valueOf(rs.getString("formOfEducation"));
+						Person groupAdmin = null;
+						
+						System.out.println(new StudyGroup(id, name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin).toString());
+						
+					}
+					rs.close();
+					con.close();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} */
+				
 			}
 		}
 	}

@@ -12,6 +12,7 @@ import java.util.Stack;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
@@ -59,9 +60,11 @@ public class Server {
 		Environment[] envs = prepareEnvironments();
 		Environment clientEnv = envs[0];
 		Environment internalEnv = envs[1];
-		clientEnv.updateCollection();
 		
-		ExecutorService taskExecutor = Executors.newCachedThreadPool(Executors.defaultThreadFactory());
+		ExecutorService intClientExecutor = Executors.newFixedThreadPool(1);
+		ForkJoinPool clientReader = ForkJoinPool.commonPool();
+		ExecutorService clientExecutor = Executors.newCachedThreadPool(Executors.defaultThreadFactory());
+		ForkJoinPool clientWriter = ForkJoinPool.commonPool();
 		
 		try (AsynchronousServerSocketChannel asyncServerChannel = AsynchronousServerSocketChannel.open()) {
 			if (asyncServerChannel.isOpen()) {
@@ -70,7 +73,7 @@ public class Server {
 				asyncServerChannel.bind(new InetSocketAddress(Integer.parseInt(args[0])));
 				rootLogger.info("Waiting for connections ...");
 				
-				taskExecutor.submit(() -> {
+				intClientExecutor.submit(() -> {
 					Scanner scan = new Scanner(System.in);
 					Logger internalClientLogger = LogManager.getLogger("internal");
 					while (true) {
@@ -82,7 +85,8 @@ public class Server {
 
 							if (command[0].equals("exit")) {
 								internalEnv.getCommandsMap().get(command[0]).execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
-								taskExecutor.shutdownNow();
+								intClientExecutor.shutdownNow();
+								clientReader.shutdownNow();
 								System.exit(0);
 							}
 							
@@ -101,7 +105,8 @@ public class Server {
 						} catch (Exception e) {
 							if (!scan.hasNextLine()) {
 								rootLogger.warn("Inputing is closed! Server is closing...");
-								taskExecutor.shutdownNow();
+								intClientExecutor.shutdownNow();
+								clientReader.shutdownNow();
 								scan.close();
 								System.exit(0);
 							} else {
@@ -118,13 +123,14 @@ public class Server {
 
 					try {
 						final AsynchronousSocketChannel asyncChannel = asynchFuture.get();
-						ClientHandler worker = new ClientHandler(asyncChannel, clientEnv);
-						taskExecutor.submit(worker);
+						ClientHandler worker = new ClientHandler(asyncChannel, clientEnv, clientExecutor, clientWriter);
+						clientReader.submit(worker);
 					} catch (InterruptedException | ExecutionException ex) {
 						rootLogger.error(ex);
 						rootLogger.error("\n Server is shutting down ...");
-						taskExecutor.shutdown();
-						while (!taskExecutor.isTerminated());
+						intClientExecutor.shutdownNow();
+						clientReader.shutdown();
+						while (!clientReader.isTerminated());
 						break;
 					} catch (Exception e) {
 						e.printStackTrace();

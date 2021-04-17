@@ -1,16 +1,9 @@
 package itmo.labs.zavar.commands.base;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Stack;
-import java.util.concurrent.ExecutionException;
 
 import itmo.labs.zavar.db.DataBaseManager;
-import itmo.labs.zavar.db.DbUtils;
-import itmo.labs.zavar.studygroup.Coordinates;
-import itmo.labs.zavar.studygroup.FormOfEducation;
-import itmo.labs.zavar.studygroup.Person;
 import itmo.labs.zavar.studygroup.StudyGroup;
 
 /**
@@ -41,41 +34,6 @@ public class Environment {
 		this.stack = stack;
 		history = new History();
 		this.db = db;
-	}
-
-	public void updateCollection() {
-		ResultSet rs = null;
-		try {
-			rs = db.readFromDB(DbUtils.loadAll()).get();
-			while (rs.next()) {
-				long id = rs.getLong("id");
-				String name = rs.getString("name");
-				Coordinates coordinates = new Coordinates(rs.getDouble("x"), rs.getFloat("y"));
-				Long studentsCount = rs.getLong("studentsCount");
-				int expelledStudents = rs.getInt("expelledStudents");
-				long transferredStudents = rs.getLong("transferredStudents");
-				FormOfEducation formOfEducation = FormOfEducation.valueOf(rs.getString("formOfEducation"));
-				Person groupAdmin = null;
-
-				/*String admName = "";
-				String passportID = "";
-				Color eyeColor = null;
-				Color hairColor = null;
-				Country nationality = null;
-				Location location;
-				String nameStr = "";
-				float x1 = 0f;
-				Float y1 = 0f;
-				Long z = 0l;*/
-				
-				stack.add(new StudyGroup(id, name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin));
-				
-			}
-			rs.close();
-		} catch (InterruptedException | ExecutionException | SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} 
 	}
 	
 	public DataBaseManager getDbManager() {
