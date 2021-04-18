@@ -3,17 +3,19 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.commands.base.InputParser;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
@@ -63,19 +65,6 @@ public class AddIfMaxCommand extends Command {
 		} else {
 			PrintStream pr = new PrintStream(outStream);
 			Scanner in = new Scanner(inStream);
-			long id = 1;
-			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-
-				long maxId;
-				try {
-					maxId = env.getCollection().stream().max(Comparator.comparingLong(StudyGroup::getId)).orElseThrow(NoSuchElementException::new).getId();
-					id = maxId + 1;
-				} catch (NoSuchElementException e) {
-					id = 1;
-				} catch (Exception e) {
-					throw new CommandRunningException("Unexcepted error! " + e.getMessage());
-				}
-			}
 			try {
 				String name = "";
 				Coordinates coordinates = null;
@@ -164,32 +153,47 @@ public class AddIfMaxCommand extends Command {
 						pr.println("Enter Z:");
 						z = InputParser.parseLong(outStream, in, "Z", Long.MIN_VALUE, Long.MAX_VALUE, false,
 								false);
+						location = new Location(x1, y1, z, nameStr);
+						groupAdmin = new Person(admName, passportID, eyeColor, hairColor, nationality, location);
 					}
-					location = new Location(x1, y1, z, nameStr);
-					groupAdmin = new Person(admName, passportID, eyeColor, hairColor, nationality, location);
 				}
 				
 				StudyGroup temp1 = null;
 				if (type.equals(ExecutionType.CLIENT) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-					temp1 = new StudyGroup(id, name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin);
+					temp1 = new StudyGroup(name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin);
 					super.args = new Object[] {temp1};
 				} else if (type.equals(ExecutionType.SERVER)) {
 					temp1 = (StudyGroup) args[0];
-					temp1.setId(id);
 				}
 				
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-					StudyGroup temp2 = Collections.max(env.getCollection());
-					if (temp1.compareTo(temp2) > 0) {
-						env.getCollection().push(temp1);
-						pr.println("Element added!");
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+
+					stmt = con.prepareStatement(DbUtils.getMaxElement());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+
+					if (temp1.getCreationLocalDate().compareTo(LocalDate.parse(rs.getString(1))) > 0) {
+
+						stmt = con.prepareStatement(DbUtils.addElement(temp1));
+
+						if (stmt.executeUpdate() == 0) {
+							pr.println("Element didn't add!");
+						} else {
+							pr.println("Element added!");
+						}
+
 					} else {
 						pr.println("Element less than max element in collection!");
 					}
+					con.close();
+					
 				}
 			} catch (InputMismatchException e) {
 				throw new CommandRunningException("Input closed!");
 			} catch (Exception e) {
+				e.printStackTrace();
 				throw new CommandRunningException("Parsing error!");
 			}
 		}

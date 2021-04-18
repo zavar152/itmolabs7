@@ -45,6 +45,7 @@ public class AverageOfTSCommand extends Command {
 					ResultSet rs = stmt.executeQuery();
 					rs.next();
 					if (rs.getInt(1) == 0) {
+						con.close();
 						throw new CommandRunningException("Collection is empty!");
 					}
 					stmt = con.prepareStatement(DbUtils.averageOfTs());

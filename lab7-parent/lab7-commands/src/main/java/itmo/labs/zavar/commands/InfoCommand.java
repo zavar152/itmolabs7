@@ -54,10 +54,12 @@ public class InfoCommand extends Command {
 					while (rs.next()) {
 						date = rs.getString(1);
 					}
-					con.close();
 					pr.println("Database type: PostgreSQL");
+					pr.println("Database catalog: " + con.getCatalog());
+					pr.println("Database schema: " + con.getSchema());
 					pr.println("Creation date: " + date);
 					pr.println("Count of elements: " + count);
+					con.close();
 				} catch (SQLException e) {
 					throw new CommandSQLException(e.getMessage());
 				}

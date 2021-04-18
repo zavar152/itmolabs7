@@ -31,7 +31,6 @@ import itmo.labs.zavar.commands.InfoCommand;
 import itmo.labs.zavar.commands.RemoveAnyBySCCommand;
 import itmo.labs.zavar.commands.RemoveByIDCommand;
 import itmo.labs.zavar.commands.ShowCommand;
-import itmo.labs.zavar.commands.ShuffleCommand;
 import itmo.labs.zavar.commands.UpdateCommand;
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Command.ExecutionType;
@@ -48,13 +47,13 @@ public class Server {
 	
 	public static void main(String[] args) {
 		
-		if(args.length != 1)
+		if(args.length != 2)
 		{
-			rootLogger.error("You should enter a server port!");
+			rootLogger.error("You should enter a server port and tunnel mode!");
 			System.exit(0);
 		}
 		
-		Environment[] envs = prepareEnvironments();
+		Environment[] envs = prepareEnvironments(args[1]);
 		Environment clientEnv = envs[0];
 		Environment internalEnv = envs[1];
 		
@@ -142,9 +141,9 @@ public class Server {
 		}
 	}
 	
-	private static Environment[] prepareEnvironments() {
+	private static Environment[] prepareEnvironments(String ssh) {
 		
-		DataBaseManager db = new DataBaseManager(true, "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
+		DataBaseManager db = new DataBaseManager(ssh.equals("tun"), "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
 		
 		HelpCommand.register(clientsCommandsMap);
 		ShowCommand.register(clientsCommandsMap);
@@ -153,7 +152,6 @@ public class Server {
 		InfoCommand.register(clientsCommandsMap);
 		AddCommand.register(clientsCommandsMap);
 		RemoveByIDCommand.register(clientsCommandsMap);
-		ShuffleCommand.register(clientsCommandsMap);
 		HistoryCommand.register(clientsCommandsMap);
 		RemoveAnyBySCCommand.register(clientsCommandsMap);
 		AverageOfTSCommand.register(clientsCommandsMap);

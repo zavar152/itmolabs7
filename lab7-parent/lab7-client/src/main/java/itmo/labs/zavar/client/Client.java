@@ -37,7 +37,6 @@ import itmo.labs.zavar.commands.InfoCommand;
 import itmo.labs.zavar.commands.RemoveAnyBySCCommand;
 import itmo.labs.zavar.commands.RemoveByIDCommand;
 import itmo.labs.zavar.commands.ShowCommand;
-import itmo.labs.zavar.commands.ShuffleCommand;
 import itmo.labs.zavar.commands.UpdateCommand;
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Command.ExecutionType;
@@ -63,7 +62,6 @@ public class Client {
 		InfoCommand.register(commandsMap);
 		AddCommand.register(commandsMap);
 		RemoveByIDCommand.register(commandsMap);
-		ShuffleCommand.register(commandsMap);
 		HistoryCommand.register(commandsMap);
 		RemoveAnyBySCCommand.register(commandsMap);
 		AverageOfTSCommand.register(commandsMap);

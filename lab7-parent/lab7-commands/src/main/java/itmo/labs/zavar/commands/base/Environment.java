@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Stack;
 
 import itmo.labs.zavar.db.DataBaseManager;
-import itmo.labs.zavar.studygroup.StudyGroup;
 
 /**
  * This class contains main information: commands' map, collection, command's
@@ -59,11 +58,6 @@ public class Environment {
 	 */
 	public HashMap<String, Command> getCommandsMap() {
 		return map;
-	}
-
-	public Stack<StudyGroup> getCollection() {
-		return null;
-
 	}
 	
 	/**

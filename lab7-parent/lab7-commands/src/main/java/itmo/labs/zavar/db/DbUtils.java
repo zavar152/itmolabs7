@@ -1,5 +1,7 @@
 package itmo.labs.zavar.db;
 
+import itmo.labs.zavar.studygroup.StudyGroup;
+
 public class DbUtils {
 
 	public static String getAll() {
@@ -18,16 +20,28 @@ public class DbUtils {
 		return "SELECT MIN(creationdate) FROM studygroups;";
 	}
 	
+	public static String getMaxElement() {
+		return "SELECT MAX(creationdate) FROM studygroups;";
+	}
+	
+	public static String getMinElement() {
+		return "SELECT MIN(creationdate) FROM studygroups;";
+	}
+	
 	public static String clearAll() {
 		return "TRUNCATE TABLE studygroups;";
 	}
 	
-	public static String deleteById(int id) {
+	public static String deleteById(long id) {
 		return "DELETE FROM studygroups WHERE id = " + id + ";";
 	}
 	
 	public static String deleteBySc(long sc) {
 		return "DELETE FROM studygroups WHERE studentsCount = " + sc + ";";
+	}
+	
+	public static String getById(long id) {
+		return "SELECT * FROM studygroups WHERE id = " + id + ";";
 	}
 	
 	public static String averageOfTs() {
@@ -36,6 +50,19 @@ public class DbUtils {
 	
 	public static String deleteMainTable() {
 		return "DROP TABLE studygroups;";
+	}
+	
+	public static String addElement(StudyGroup group) {
+		if(group.getGroupAdmin() == null) {
+			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName) "
+					+ "VALUES ((SELECT nextval('sequence_id')), '" + group.getName() + "', " + group.getCoordinates().getX() + ", " + group.getCoordinates().getY() + ", '" + group.getCreationLocalDate() + "', " + group.getStudentsCount() + ", " + group.getExpelledStudents() + ", " + group.getTransferredStudents() + ", '" + group.getFormOfEducation() + "', "
+							+ "'null', " + 0 + ", 'BLACK', 'BLACK', 'USA', " + 0 + ", " + 0 + ", " + 0 + ", '');";
+		}
+		else {
+			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName) "
+					+ "VALUES ((SELECT nextval('sequence_id')), '" + group.getName() + "', " + group.getCoordinates().getX() + ", " + group.getCoordinates().getY() + ", '" + group.getCreationLocalDate() + "', " + group.getStudentsCount() + ", " + group.getExpelledStudents() + ", " + group.getTransferredStudents() + ", '" + group.getFormOfEducation() + "', "
+							+ "'" + group.getGroupAdmin().getName() + "', " + group.getGroupAdmin().getPassportID() + ", '" + group.getGroupAdmin().getEyeColor() + "', '" + group.getGroupAdmin().getHairColor() + "', '" + group.getGroupAdmin().getNationality() + "', " + group.getGroupAdmin().getLocation().getX() + ", " + group.getGroupAdmin().getLocation().getY() + ", " + group.getGroupAdmin().getLocation().getZ() + ", '" + group.getGroupAdmin().getLocation().getName() + "');";
+		}
 	}
 	
 	public static String createMainTable() {

@@ -3,18 +3,24 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.commands.base.InputParser;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 import itmo.labs.zavar.studygroup.Color;
 import itmo.labs.zavar.studygroup.Coordinates;
 import itmo.labs.zavar.studygroup.Country;
@@ -65,77 +71,149 @@ public class UpdateCommand extends Command {
 			throw new CommandArgumentException("This command requires one argument!\n" + getUsage());
 		} else {
 			PrintStream pr = new PrintStream(outStream);
-			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				if (env.getCollection().isEmpty()) {
-					throw new CommandRunningException("Collection is empty!");
+			try {
+				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+					if (rs.getInt(1) == 0) {
+						con.close();
+						throw new CommandRunningException("Collection is empty!");
+					}
+					con.close();
 				}
+			} catch (SQLException e1) {
+				throw new CommandRunningException("SQL error! " + e1.getMessage());
 			}
 			
 			StudyGroup sg = null;
 			
 			if (type.equals(ExecutionType.SERVER)) {
+				Connection con = env.getDbManager().getConnection();
 				try {
-					sg = env.getCollection().stream().filter(p -> p.getId() == Long.parseLong((String) args[0])).findFirst().orElseThrow(NoSuchElementException::new);	
-					
+					long id = Long.parseLong((String) args[0]);	
+					PreparedStatement stmt;
 					int f = (Integer) args[1];
 					switch (f) {
 					case 1:
 						StudyGroup temp = (StudyGroup) args[2];
-						sg.setName(temp.getName());
-						sg.setCoordinates(temp.getCoordinates());
-						sg.setStudentsCount(temp.getStudentsCount());
-						sg.setExpelledStudents(temp.getExpelledStudents());
-						sg.setTransferredStudents(temp.getTransferredStudents());
-						sg.setFormOfEducation(temp.getFormOfEducation());
-						sg.setGroupAdmin(temp.getGroupAdmin());
-						pr.println("Element updated");
+						Person p1 = temp.getGroupAdmin();
+						if(p1 != null)
+						{
+							stmt = con.prepareStatement("UPDATE studygroups SET name = '" + temp.getName() + "', x = " + temp.getCoordinates().getX() + ", y = " + temp.getCoordinates().getY() + ", studentscount = " + temp.getStudentsCount() + ", expelledstudents = " + temp.getExpelledStudents() + ", transferredstudents = " + temp.getTransferredStudents() + ", "
+									+ "formofeducation = '" + temp.getFormOfEducation() + "', adminname = '" + p1.getName() + "', adminpassportid = " + p1.getPassportID() + ", admineyecolor = '" + p1.getEyeColor() + "', adminhaircolor = '" + p1.getHairColor() + "', adminnationality = '" + p1.getNationality() + "', adminlocationx = " + p1.getLocation().getX() + ", adminlocationy = " + p1.getLocation().getY() + ", adminlocationz = " + p1.getLocation().getZ() + ", adminlocationname = '" + p1.getLocation().getName() + "' WHERE id = " + id);
+						} else {
+							stmt = con.prepareStatement("UPDATE studygroups SET name = '" + temp.getName() + "', x = " + temp.getCoordinates().getX() + ", y = " + temp.getCoordinates().getY() + ", studentscount = " + temp.getStudentsCount() + ", expelledstudents = " + temp.getExpelledStudents() + ", transferredstudents = " + temp.getTransferredStudents() + ", "
+									+ "formofeducation = '" + temp.getFormOfEducation() + "', adminname = 'null', adminpassportid = " + 0 + ", admineyecolor = 'BLACK', adminhaircolor = 'BLACK', adminnationality = 'USA', adminlocationx = " + 0 + ", adminlocationy = " + 0 + ", adminlocationz = " + 0 + ", adminlocationname = '' WHERE id = " + id);
+						}
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Element updated");
 						break;
 					case 2:
-						sg.setName((String) args[2]);
-						pr.println("Name updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET name = '" + (String) args[2] + "' WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Name updated");
 						break;
 					case 3:
-						sg.setCoordinates((Coordinates) args[2]);
-						pr.println("Coordinates updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET x = " + ((Coordinates) args[2]).getX() + ", y = " + ((Coordinates) args[2]).getY() + " WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Coordinates updated");
 						break;
 					case 4:
-						sg.setStudentsCount((Long) args[2]);
-						pr.println("Students count updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET studentscount = " + (Long) args[2] + " WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Students count updated");
 						break;
 					case 5:
-						sg.setExpelledStudents((Integer) args[2]);
-						pr.println("Expelled students updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET expelledstudents = " + (Integer) args[2] + " WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Expelled students updated");
 						break;
 					case 6:
-						sg.setTransferredStudents((Long) args[2]);
-						pr.println("Transferred students updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET transferredstudents = " + (Long) args[2] + " WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Transferred students updated");
 						break;
 					case 7:
-						sg.setFormOfEducation((FormOfEducation) args[2]);
-						pr.println("Form of education updated");
+						stmt = con.prepareStatement("UPDATE studygroups SET formofeducation = '" + (FormOfEducation) args[2] + "' WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Form of education updated");
 						break;
 					case 8:
-						sg.setGroupAdmin((Person) args[2]);
-						pr.println("Group's admin updated");
+						Person p = (Person) args[2];
+						stmt = con.prepareStatement("UPDATE studygroups SET adminname = '" + p.getName() + "', adminpassportid = " + p.getPassportID() + ", admineyecolor = '" + p.getEyeColor() + "', adminhaircolor = '" + p.getHairColor() + "', "
+								+ "adminnationality = '" + p.getNationality() + "', adminlocationx = " + p.getLocation().getX() + ", adminlocationy = " + p.getLocation().getY() + ", adminlocationz = " + p.getLocation().getZ() + ", adminlocationname = '" + p.getLocation().getName() + "' WHERE id = " + id);
+						if(stmt.executeUpdate() == 0) {
+							throw new CommandArgumentException("No such id in the collection!");
+						}
+						else
+							pr.println("Group's admin updated");
 						break;
 
 					}
-					
-				} catch (NoSuchElementException e) {
-					throw new CommandArgumentException("No such id in the collection!");
+					con.close();				
 				} catch (Exception e) {
-					e.printStackTrace();
-					throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					if(e instanceof CommandArgumentException) {
+						throw new CommandException(e.getMessage());
+					} else {
+						e.printStackTrace();
+						try {
+							con.close();
+						} catch (SQLException e1) { }
+						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					}
 				}
 			} else if (type.equals(ExecutionType.CLIENT)) {
 				sg = new StudyGroup();
 			} else if (type.equals(ExecutionType.SCRIPT) || type.equals(ExecutionType.INTERNAL_CLIENT)) {
+				Connection con;
+				PreparedStatement stmt;
+				long id = Long.parseLong((String) args[0]);
 				try {
-					sg = env.getCollection().stream().filter(p -> p.getId() == Long.parseLong((String) args[0])).findFirst().orElseThrow(NoSuchElementException::new);
-				} catch (NoSuchElementException e) {
-					throw new CommandArgumentException("No such id in the collection!");
+					con = env.getDbManager().getConnection();
+					
+					stmt = con.prepareStatement(DbUtils.getById(id));
+					ResultSet rs = stmt.executeQuery();
+					
+					if(rs.next()) {
+						sg = new StudyGroup(rs.getString("name"), new Coordinates(rs.getDouble("x"), rs.getFloat("y")),
+								rs.getLong("studentscount"), rs.getInt("expelledstudents"), rs.getLong("transferredstudents"), FormOfEducation.valueOf(rs.getString("formofeducation")),
+								new Person(rs.getString("adminname"), rs.getString("adminpassportid"), Color.valueOf(rs.getString("admineyecolor")), Color.valueOf(rs.getString("adminhaircolor")),
+										Country.valueOf(rs.getString("adminnationality")), new Location(rs.getFloat("adminlocationx"), rs.getFloat("adminlocationy"), rs.getLong("adminlocationz"), rs.getString("adminlocationname")) ));
+						sg.setCreationLocalDate(LocalDate.parse(rs.getString("creationdate")));
+					} else {
+						throw new CommandArgumentException("No such id in the collection!");
+					}
+					
 				} catch (Exception e) {
-					throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					if(e instanceof CommandArgumentException) {
+						throw new CommandException(e.getMessage());
+					} else {
+						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					}
 				}
 				Scanner in = new Scanner(inStream);
 
@@ -235,7 +313,21 @@ public class UpdateCommand extends Command {
 				} catch (Exception e) {
 					throw new CommandRunningException("Parsing error!");
 				}
-				pr.println("Updating is completed!");
+				
+				Person p1 = sg.getGroupAdmin();
+				try {
+					stmt = con.prepareStatement("UPDATE studygroups SET name = '" + sg.getName() + "', x = " + sg.getCoordinates().getX() + ", y = " + sg.getCoordinates().getY() + ", studentscount = " + sg.getStudentsCount() + ", expelledstudents = " + sg.getExpelledStudents() + ", transferredstudents = " + sg.getTransferredStudents() + ", "
+							+ "formofeducation = " + sg.getFormOfEducation() + "', adminname = '" + p1.getName() + "', adminpassportid = " + p1.getPassportID() + ", admineyecolor = '" + p1.getEyeColor() + "', adminhaircolor = '" + p1.getHairColor() + "', adminnationality = '" + p1.getNationality() + "', adminlocationx = " + p1.getLocation().getX() + ", adminlocationy = " + p1.getLocation().getY() + ", adminlocationz = " + p1.getLocation().getZ() + ", adminlocationname = '" + p1.getLocation().getName() + "' WHERE id = " + id);
+					if(stmt.executeUpdate() == 0) {
+						throw new CommandSQLException("Updating error!");
+					} else {
+						pr.println("Updating is completed!");
+					}
+					con.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+					throw new CommandSQLException(e.getMessage());
+				}
 			}
 			
 			if (type.equals(ExecutionType.CLIENT)) {
@@ -331,7 +423,6 @@ public class UpdateCommand extends Command {
 						sg.setGroupAdmin(groupAdmin);
 						super.args = new Object[] {args[0], f, groupAdmin};
 						break;
-
 					}
 
 				} catch (InputMismatchException e) {
