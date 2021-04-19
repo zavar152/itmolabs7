@@ -80,8 +80,8 @@ public abstract class Command {
 	 * 
 	 * @return {@link CommandPackage} for sending to server
 	 */
-	public final CommandPackage getPackage() {
-		return new CommandPackage(getName(), args);
+	public final CommandPackage getPackage(String login, String password) {
+		return new CommandPackage(getName(), args, login, password);
 	}
 	
 	/**

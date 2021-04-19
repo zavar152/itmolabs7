@@ -24,6 +24,14 @@ public class DbUtils {
 		return "SELECT MAX(creationdate) FROM studygroups;";
 	}
 	
+	public static String register(String login, String password) {
+		return "INSERT INTO users (name, password) VALUES ('" + login + "','" + password + "')";
+	}
+	
+	public static String getUser(String login) {
+		return "SELECT * FROM users WHERE name = '" + login + "';";
+	}
+	
 	public static String getMinElement() {
 		return "SELECT MIN(creationdate) FROM studygroups;";
 	}

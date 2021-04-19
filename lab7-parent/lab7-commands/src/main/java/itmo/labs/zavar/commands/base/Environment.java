@@ -29,15 +29,15 @@ public class Environment {
 	 * @param map   Commands' map.
 	 * @param stack Main collection.
 	 */
-	public Environment(DataBaseManager db, HashMap<String, Command> map) {
+	public Environment(ConcurrentHashMap<String, String> userTable, DataBaseManager db, HashMap<String, Command> map) {
 		this.map = map;
 		history = new History();
-		userTable = new ConcurrentHashMap<String, String>();
+		this.userTable = userTable;
 		this.db = db;
 	}
 	/**
 	 * Returns DataBaseManager to get connection with database
-	 * 
+	 *  
 	 * @return DataBaseManager
 	 */
 	public DataBaseManager getDbManager() {
@@ -45,7 +45,23 @@ public class Environment {
 	}
 
 	public void putUser(String host, String user) {
-		
+		userTable.put(host, user);
+	}
+	
+	public void removeUser(String host) {
+		userTable.remove(host);
+	}
+	
+	public String getUser(String host) {
+		return userTable.get(host);
+	}
+	
+	public boolean containsUser(String user) {
+		return userTable.contains(user);
+	}
+	
+	public boolean containsHost(String host) {
+		return userTable.containsKey(host);
 	}
 	
 	/**

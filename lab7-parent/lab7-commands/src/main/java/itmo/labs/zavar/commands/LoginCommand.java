@@ -6,11 +6,13 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Scanner;
 
 import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.logging.log4j.LogManager;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
@@ -19,10 +21,10 @@ import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandSQLException;
 
-public class RegisterCommand extends Command {
+public class LoginCommand extends Command {
 
-	private RegisterCommand() {
-		super("register");
+	private LoginCommand() {
+		super("login", "login", "password");
 	}
 
 	@Override
@@ -81,19 +83,39 @@ public class RegisterCommand extends Command {
 				password = (String) args[1];
 			}
 			
+			if(type.equals(ExecutionType.INTERNAL_CLIENT)) {
+				args = new String[] {"internal"};
+			}
+			
 			if(type.equals(ExecutionType.SERVER) || type.equals(ExecutionType.INTERNAL_CLIENT)) {
 				Connection con = null;
 				try {
 					con = env.getDbManager().getConnection();
 					PreparedStatement stmt;
-					stmt = con.prepareStatement(DbUtils.register(login, password));
-					stmt.executeUpdate();
-					pr.println("Registration is finished!");
+					stmt = con.prepareStatement(DbUtils.getUser(login));
+					ResultSet rs = stmt.executeQuery();
+					if(rs.next()) {
+						if(rs.getString(2).equals(password)) {
+							if(env.getUser((String) args[args.length-1]) == null || !env.getUser((String) args[args.length-1]).equals(login)) {
+								env.removeUser((String) args[args.length-1]);
+								env.putUser((String) args[args.length-1], login);
+								if(type.equals(ExecutionType.SERVER))
+									pr.println(true);
+								else
+									pr.println("Login successful!");
+								LogManager.getLogger(LoginCommand.class.getName()).info("Login successful, host - " + args[args.length-1] + ", user - " + login);
+							} else {
+								pr.println("You are already logged in!");
+							}
+							
+						} else {
+							pr.println("Incorrect password!");
+						}
+					} else {
+						pr.println("User not found!");
+					}
 				} catch (SQLException e) {
-					if(e.getMessage().contains("duplicate"))
-						pr.println("User is existed! Change your login!");
-					else
-						throw new CommandSQLException(e.getMessage());
+					throw new CommandSQLException(e.getMessage());
 				} finally {
 					try {
 						con.close();
@@ -104,13 +126,13 @@ public class RegisterCommand extends Command {
 	}
 
 	public static void register(HashMap<String, Command> commandsMap) {
-		RegisterCommand command = new RegisterCommand();
+		LoginCommand command = new LoginCommand();
 		commandsMap.put(command.getName(), command);
 	}
 	
 	@Override
 	public String getHelp() {
-		return "This command is using for registration!";
+		return "This command is using to login in the system!";
 	}
 	
 	@Override

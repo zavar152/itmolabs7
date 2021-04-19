@@ -8,6 +8,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,6 +29,8 @@ import itmo.labs.zavar.commands.ExitCommand;
 import itmo.labs.zavar.commands.HelpCommand;
 import itmo.labs.zavar.commands.HistoryCommand;
 import itmo.labs.zavar.commands.InfoCommand;
+import itmo.labs.zavar.commands.LoginCommand;
+import itmo.labs.zavar.commands.RegisterCommand;
 import itmo.labs.zavar.commands.RemoveAnyBySCCommand;
 import itmo.labs.zavar.commands.RemoveByIDCommand;
 import itmo.labs.zavar.commands.ShowCommand;
@@ -42,6 +45,7 @@ public class Server {
 	
 	private static HashMap<String, Command> clientsCommandsMap = new HashMap<String, Command>();
 	private static HashMap<String, Command> internalCommandsMap = new HashMap<String, Command>();
+	private static ConcurrentHashMap<String, String> userTable = new ConcurrentHashMap<String, String>();
 	
 	private static final Logger rootLogger = LogManager.getLogger(Server.class.getName());
 	
@@ -88,9 +92,14 @@ public class Server {
 							
 							if (internalEnv.getCommandsMap().containsKey(command[0])) {
 								try {
-									internalEnv.getHistory().addToGlobal(input);
-									internalEnv.getCommandsMap().get(command[0]).execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
-									internalEnv.getHistory().clearTempHistory();
+									Command c = internalEnv.getCommandsMap().get(command[0]);
+									if(c.isAuthorizationRequired() && !userTable.containsKey("internal")) {
+										System.out.println("You don't have permissions to execute this command!");
+									} else {
+										internalEnv.getHistory().addToGlobal(input);
+										c.execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
+										internalEnv.getHistory().clearTempHistory();	
+									}
 								} catch (CommandException e) {
 									rootLogger.error(e.getMessage());
 									internalEnv.getHistory().clearTempHistory();
@@ -159,10 +168,12 @@ public class Server {
 		AddIfMaxCommand.register(clientsCommandsMap);
 		AddIfMinCommand.register(clientsCommandsMap);
 		UpdateCommand.register(clientsCommandsMap);
+		RegisterCommand.register(clientsCommandsMap);
+		LoginCommand.register(clientsCommandsMap);
 		
 		internalCommandsMap.putAll(clientsCommandsMap);
 		ExitCommand.register(internalCommandsMap);
 		
-		return new Environment[] { new Environment(db, clientsCommandsMap),  new Environment(db, internalCommandsMap)};
+		return new Environment[] { new Environment(userTable, db, clientsCommandsMap),  new Environment(userTable, db, internalCommandsMap)};
 	}
 }
