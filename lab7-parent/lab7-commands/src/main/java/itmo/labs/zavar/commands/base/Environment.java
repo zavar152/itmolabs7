@@ -2,6 +2,7 @@ package itmo.labs.zavar.commands.base;
 
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
 
 import itmo.labs.zavar.db.DataBaseManager;
 
@@ -17,7 +18,8 @@ public class Environment {
 	private HashMap<String, Command> map;
 	private History history;
 	private DataBaseManager db;
-
+	private ConcurrentHashMap<String, String> userTable;
+	
 	/**
 	 * Creates new server environment for commands. Collection's creation date will
 	 * be equals to file's creation date. If it won't be able to get file's
@@ -30,6 +32,7 @@ public class Environment {
 	public Environment(DataBaseManager db, HashMap<String, Command> map) {
 		this.map = map;
 		history = new History();
+		userTable = new ConcurrentHashMap<String, String>();
 		this.db = db;
 	}
 	/**
@@ -41,6 +44,10 @@ public class Environment {
 		return db;
 	}
 
+	public void putUser(String host, String user) {
+		
+	}
+	
 	/**
 	 * Creates new client environment for commands.
 	 * 

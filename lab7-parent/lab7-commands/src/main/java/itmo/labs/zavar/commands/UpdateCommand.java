@@ -106,7 +106,7 @@ public class UpdateCommand extends Command {
 									+ "formofeducation = '" + temp.getFormOfEducation() + "', adminname = '" + p1.getName() + "', adminpassportid = " + p1.getPassportID() + ", admineyecolor = '" + p1.getEyeColor() + "', adminhaircolor = '" + p1.getHairColor() + "', adminnationality = '" + p1.getNationality() + "', adminlocationx = " + p1.getLocation().getX() + ", adminlocationy = " + p1.getLocation().getY() + ", adminlocationz = " + p1.getLocation().getZ() + ", adminlocationname = '" + p1.getLocation().getName() + "' WHERE id = " + id);
 						} else {
 							stmt = con.prepareStatement("UPDATE studygroups SET name = '" + temp.getName() + "', x = " + temp.getCoordinates().getX() + ", y = " + temp.getCoordinates().getY() + ", studentscount = " + temp.getStudentsCount() + ", expelledstudents = " + temp.getExpelledStudents() + ", transferredstudents = " + temp.getTransferredStudents() + ", "
-									+ "formofeducation = '" + temp.getFormOfEducation() + "', adminname = 'null', adminpassportid = " + 0 + ", admineyecolor = 'BLACK', adminhaircolor = 'BLACK', adminnationality = 'USA', adminlocationx = " + 0 + ", adminlocationy = " + 0 + ", adminlocationz = " + 0 + ", adminlocationname = '' WHERE id = " + id);
+									+ "formofeducation = '" + temp.getFormOfEducation() + "', adminname = null, adminpassportid = " + 0 + ", admineyecolor = 'BLACK', adminhaircolor = 'BLACK', adminnationality = 'USA', adminlocationx = " + 0 + ", adminlocationy = " + 0 + ", adminlocationz = " + 0 + ", adminlocationname = '' WHERE id = " + id);
 						}
 						if(stmt.executeUpdate() == 0) {
 							throw new CommandArgumentException("No such id in the collection!");
@@ -199,11 +199,18 @@ public class UpdateCommand extends Command {
 					ResultSet rs = stmt.executeQuery();
 					
 					if(rs.next()) {
-						sg = new StudyGroup(rs.getString("name"), new Coordinates(rs.getDouble("x"), rs.getFloat("y")),
-								rs.getLong("studentscount"), rs.getInt("expelledstudents"), rs.getLong("transferredstudents"), FormOfEducation.valueOf(rs.getString("formofeducation")),
-								new Person(rs.getString("adminname"), rs.getString("adminpassportid"), Color.valueOf(rs.getString("admineyecolor")), Color.valueOf(rs.getString("adminhaircolor")),
-										Country.valueOf(rs.getString("adminnationality")), new Location(rs.getFloat("adminlocationx"), rs.getFloat("adminlocationy"), rs.getLong("adminlocationz"), rs.getString("adminlocationname")) ));
-						sg.setCreationLocalDate(LocalDate.parse(rs.getString("creationdate")));
+						if(rs.getString("adminname") != null) {
+							sg = new StudyGroup(rs.getString("name"), new Coordinates(rs.getDouble("x"), rs.getFloat("y")),
+									rs.getLong("studentscount"), rs.getInt("expelledstudents"), rs.getLong("transferredstudents"), FormOfEducation.valueOf(rs.getString("formofeducation")),
+									new Person(rs.getString("adminname"), rs.getString("adminpassportid"), Color.valueOf(rs.getString("admineyecolor")), Color.valueOf(rs.getString("adminhaircolor")),
+											Country.valueOf(rs.getString("adminnationality")), new Location(rs.getFloat("adminlocationx"), rs.getFloat("adminlocationy"), rs.getLong("adminlocationz"), rs.getString("adminlocationname")) ));
+							sg.setCreationLocalDate(LocalDate.parse(rs.getString("creationdate")));
+						} else {
+							sg = new StudyGroup(rs.getString("name"), new Coordinates(rs.getDouble("x"), rs.getFloat("y")),
+									rs.getLong("studentscount"), rs.getInt("expelledstudents"), rs.getLong("transferredstudents"), FormOfEducation.valueOf(rs.getString("formofeducation")),
+									null);
+							sg.setCreationLocalDate(LocalDate.parse(rs.getString("creationdate")));
+						}
 					} else {
 						throw new CommandArgumentException("No such id in the collection!");
 					}
@@ -212,6 +219,7 @@ public class UpdateCommand extends Command {
 					if(e instanceof CommandArgumentException) {
 						throw new CommandException(e.getMessage());
 					} else {
+						e.printStackTrace();
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
 					}
 				}
@@ -316,8 +324,15 @@ public class UpdateCommand extends Command {
 				
 				Person p1 = sg.getGroupAdmin();
 				try {
-					stmt = con.prepareStatement("UPDATE studygroups SET name = '" + sg.getName() + "', x = " + sg.getCoordinates().getX() + ", y = " + sg.getCoordinates().getY() + ", studentscount = " + sg.getStudentsCount() + ", expelledstudents = " + sg.getExpelledStudents() + ", transferredstudents = " + sg.getTransferredStudents() + ", "
-							+ "formofeducation = " + sg.getFormOfEducation() + "', adminname = '" + p1.getName() + "', adminpassportid = " + p1.getPassportID() + ", admineyecolor = '" + p1.getEyeColor() + "', adminhaircolor = '" + p1.getHairColor() + "', adminnationality = '" + p1.getNationality() + "', adminlocationx = " + p1.getLocation().getX() + ", adminlocationy = " + p1.getLocation().getY() + ", adminlocationz = " + p1.getLocation().getZ() + ", adminlocationname = '" + p1.getLocation().getName() + "' WHERE id = " + id);
+					
+					if(p1 != null) {
+						stmt = con.prepareStatement("UPDATE studygroups SET name = '" + sg.getName() + "', x = " + sg.getCoordinates().getX() + ", y = " + sg.getCoordinates().getY() + ", studentscount = " + sg.getStudentsCount() + ", expelledstudents = " + sg.getExpelledStudents() + ", transferredstudents = " + sg.getTransferredStudents() + ", "
+								+ "formofeducation = '" + sg.getFormOfEducation() + "', adminname = '" + p1.getName() + "', adminpassportid = " + p1.getPassportID() + ", admineyecolor = '" + p1.getEyeColor() + "', adminhaircolor = '" + p1.getHairColor() + "', adminnationality = '" + p1.getNationality() + "', adminlocationx = " + p1.getLocation().getX() + ", adminlocationy = " + p1.getLocation().getY() + ", adminlocationz = " + p1.getLocation().getZ() + ", adminlocationname = '" + p1.getLocation().getName() + "' WHERE id = " + id);
+					} else {
+						stmt = con.prepareStatement("UPDATE studygroups SET name = '" + sg.getName() + "', x = " + sg.getCoordinates().getX() + ", y = " + sg.getCoordinates().getY() + ", studentscount = " + sg.getStudentsCount() + ", expelledstudents = " + sg.getExpelledStudents() + ", transferredstudents = " + sg.getTransferredStudents() + ", "
+								+ "formofeducation = '" + sg.getFormOfEducation() + "', adminname = null, adminpassportid = " + 0 + ", admineyecolor = 'BLACK', adminhaircolor = 'BLACK', adminnationality = 'USA', adminlocationx = " + 0 + ", adminlocationy = " + 0 + ", adminlocationz = " + 0 + ", adminlocationname = '' WHERE id = " + id);
+					}
+					
 					if(stmt.executeUpdate() == 0) {
 						throw new CommandSQLException("Updating error!");
 					} else {
