@@ -8,7 +8,7 @@
 		<version>0.0.1</version>
 	</parent>
 	<artifactId>lab7-commands</artifactId>
-	<version>0.3.0</version>
+	<version>0.4.0</version>
 	<name>lab7-commands</name>
 
 	<build>
@@ -107,6 +107,11 @@
 			<version>2.8.0</version>
 		</dependency>
 
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<version>1.9</version>
+		</dependency>
 
 	</dependencies>
 

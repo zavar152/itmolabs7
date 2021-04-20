@@ -1,7 +1,9 @@
 package itmo.labs.zavar.db;
 
+import java.io.Console;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.Scanner;
 
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.logging.log4j.LogManager;
@@ -12,7 +14,7 @@ import com.jcraft.jsch.JSchException;
 public class DataBaseManager {
 
 	private SshTunnel tunnel = null;
-	private static String user, password, baseName;
+	private static String user, password, baseName, host;
 	private static int localPort;
 	private static Logger logger = LogManager.getLogger(DataBaseManager.class.getName());
 	private static BasicDataSource ds = new BasicDataSource();
@@ -20,22 +22,53 @@ public class DataBaseManager {
 	public DataBaseManager(boolean ssh, String user, String password, String sshHost, String baseName, int sshPort,
 			String remoteHost, int localPort, int remotePort) {
 
-		DataBaseManager.user = user;
-		DataBaseManager.localPort = localPort;
-		DataBaseManager.password = password;
-		DataBaseManager.baseName = baseName;
-
-		if (ssh) {
+		int attempts = 0;
+		Scanner scanner = new Scanner(System.in);
+		Console console = System.console();
+		System.out.println("Enter your password: ");
+		while (true) {
 			try {
-				tunnel = new SshTunnel(user, password, sshHost, sshPort, remoteHost, localPort, remotePort);
-				tunnel.connect();
-				logger.info("Created ssh tunnel successfully");
-			} catch (JSchException e) {
-				e.printStackTrace();
-				logger.error("Failed to open ssh tunnel");
+				if (console != null) {
+					password = new String(console.readPassword());
+				} else {
+					password = scanner.nextLine();
+				}
+				DataBaseManager.user = user;
+				DataBaseManager.localPort = localPort;
+				DataBaseManager.password = password;
+				DataBaseManager.baseName = baseName;
+				DataBaseManager.host = "localhost";
+
+				if (ssh) {
+					try {
+						tunnel = new SshTunnel(user, password, sshHost, sshPort, remoteHost, localPort, remotePort);
+						tunnel.connect();
+						logger.info("Created ssh tunnel successfully");
+						break;
+					} catch (JSchException e) {
+						attempts++;
+						logger.error(e.getMessage());
+						if (attempts == 3) {
+							logger.error("You tried to login 3 times, maybe the database is unavailable or your data is incorrect");
+							System.exit(0);
+						}
+					}
+				}
+				else {
+					DataBaseManager.host = remoteHost;
+					DataBaseManager.localPort = 5432;
+					break;
+				}
+			} catch (Exception e) {
+				if (!scanner.hasNextLine()) {
+					logger.info("Inputing is closed!");
+					System.exit(0);
+				} else {
+					e.printStackTrace();
+					logger.error("Unexcepted error!");
+				}
 			}
 		}
-
 	}
 
 	public synchronized Connection getConnection() {
@@ -56,11 +89,11 @@ public class DataBaseManager {
 		private static BasicDataSource ds = new BasicDataSource();
 
 		static {
-	        ds.setUrl("jdbc:postgresql://localhost:" + localPort + "/" + baseName);
+	        ds.setUrl("jdbc:postgresql://" + host + ":" + localPort + "/" + baseName);
 	        ds.setUsername(user);
 	        ds.setPassword(password);
 	        ds.setMinIdle(5);
-	        ds.setMaxIdle(10);
+	        ds.setMaxIdle(20);
 	        ds.setMaxOpenPreparedStatements(100);
 		}
 		
@@ -68,7 +101,6 @@ public class DataBaseManager {
 			try {
 				return ds.getConnection();
 			} catch (SQLException e) {
-				e.printStackTrace();
 				logger.error("Failed to connect to database");
 			}
 			return null;
@@ -85,16 +117,4 @@ public class DataBaseManager {
 		private DBCPDataSource() {
 		}
 	}
-
-	/*
-	 * public ResultSet readFromDB(String query) throws SQLException { //Connection
-	 * con = createConnection(); Statement stmt; stmt = con.createStatement();
-	 * ResultSet rs = stmt.executeQuery(query); con.commit(); return rs; }
-	 * 
-	 * public void writeInDB(String sql) { //Connection con = createConnection();
-	 * Statement stmt; try { stmt = con.createStatement(); stmt.executeUpdate(sql);
-	 * stmt.close(); con.commit(); } catch (SQLException e) { e.printStackTrace(); }
-	 * }
-	 */
-
 }

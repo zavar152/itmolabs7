@@ -8,14 +8,25 @@ public class CommandPackage implements Serializable
 	
 	private String name;
 	private Object[] args;
+	private String login, password;
 	
-	public CommandPackage(String name, Object[] args) {
+	public CommandPackage(String name, Object[] args, String login, String password) {
 		this.name = name;
 		this.args = args;
+		this.login = login;
+		this.password = password;
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public String getLogin() {
+		return login;
+	}
+
+	public String getPassword() {
+		return password;
 	}
 
 	public Object[] getArgs() {

@@ -3,16 +3,17 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.InputMismatchException;
-import java.util.NoSuchElementException;
 import java.util.Scanner;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.commands.base.InputParser;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
@@ -61,19 +62,6 @@ public class AddCommand extends Command {
 		} else {
 			PrintStream pr = new PrintStream(outStream);
 			Scanner in = new Scanner(inStream);
-			long id = 1;
-			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				
-				long maxId;
-				try {
-					maxId = env.getCollection().stream().max(Comparator.comparingLong(StudyGroup::getId)).orElseThrow(NoSuchElementException::new).getId();
-					id = maxId + 1;
-				} catch (NoSuchElementException e) {
-					id = 1;
-				} catch (Exception e) {
-					throw new CommandRunningException("Unexcepted error! " + e.getMessage());
-				}
-			}
 			
 			try {
 				String name = "";
@@ -171,16 +159,28 @@ public class AddCommand extends Command {
 				
 				StudyGroup group = null;
 				if (type.equals(ExecutionType.CLIENT) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-					group = new StudyGroup(id, name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin);
+					group = new StudyGroup(name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin);
 					super.args = new Object[] {group};
 				} else if (type.equals(ExecutionType.SERVER)) {
 					group = (StudyGroup) args[0];
-					group.setId(id);
+				}
+				
+				if(type.equals(ExecutionType.INTERNAL_CLIENT)) {
+					args = new String[] {"internal"};
 				}
 				
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-					env.getCollection().push(group);
-					pr.println("Element added!");
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					
+					stmt = con.prepareStatement(DbUtils.addElement(group, env.getUser((String) args[args.length-1])));
+					
+					if (stmt.executeUpdate() == 0) {
+						pr.println("Element didn't add!");
+					} else {
+						pr.println("Element added!");
+					}
+					con.close();
 				}
 			} catch (InputMismatchException e) {
 				throw new CommandRunningException("Input closed!");

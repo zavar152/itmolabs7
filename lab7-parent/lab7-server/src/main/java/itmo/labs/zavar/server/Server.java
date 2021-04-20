@@ -8,7 +8,7 @@ import java.nio.channels.AsynchronousSocketChannel;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Scanner;
-import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -29,35 +29,36 @@ import itmo.labs.zavar.commands.ExitCommand;
 import itmo.labs.zavar.commands.HelpCommand;
 import itmo.labs.zavar.commands.HistoryCommand;
 import itmo.labs.zavar.commands.InfoCommand;
+import itmo.labs.zavar.commands.LoginCommand;
+import itmo.labs.zavar.commands.RegisterCommand;
 import itmo.labs.zavar.commands.RemoveAnyBySCCommand;
 import itmo.labs.zavar.commands.RemoveByIDCommand;
 import itmo.labs.zavar.commands.ShowCommand;
-import itmo.labs.zavar.commands.ShuffleCommand;
 import itmo.labs.zavar.commands.UpdateCommand;
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Command.ExecutionType;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.db.DataBaseManager;
 import itmo.labs.zavar.exception.CommandException;
-import itmo.labs.zavar.studygroup.StudyGroup;
+import itmo.labs.zavar.exception.CommandPermissionException;
 
 public class Server {
 	
-	private static Stack<StudyGroup> stack = new Stack<StudyGroup>();
 	private static HashMap<String, Command> clientsCommandsMap = new HashMap<String, Command>();
 	private static HashMap<String, Command> internalCommandsMap = new HashMap<String, Command>();
+	private static ConcurrentHashMap<String, String> userTable = new ConcurrentHashMap<String, String>();
 	
 	private static final Logger rootLogger = LogManager.getLogger(Server.class.getName());
 	
 	public static void main(String[] args) {
 		
-		if(args.length != 1)
+		if(args.length != 2)
 		{
-			rootLogger.error("You should enter a server port!");
+			rootLogger.error("You should enter a server port and tunnel mode!");
 			System.exit(0);
 		}
 		
-		Environment[] envs = prepareEnvironments();
+		Environment[] envs = prepareEnvironments(args[1]);
 		Environment clientEnv = envs[0];
 		Environment internalEnv = envs[1];
 		
@@ -92,9 +93,14 @@ public class Server {
 							
 							if (internalEnv.getCommandsMap().containsKey(command[0])) {
 								try {
-									internalEnv.getHistory().addToGlobal(input);
-									internalEnv.getCommandsMap().get(command[0]).execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
-									internalEnv.getHistory().clearTempHistory();
+									Command c = internalEnv.getCommandsMap().get(command[0]);
+									if(c.isAuthorizationRequired() && !userTable.containsKey("internal")) {
+										throw new CommandPermissionException();
+									} else {
+										internalEnv.getHistory().addToGlobal(input);
+										c.execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
+										internalEnv.getHistory().clearTempHistory();	
+									}
 								} catch (CommandException e) {
 									rootLogger.error(e.getMessage());
 									internalEnv.getHistory().clearTempHistory();
@@ -145,9 +151,9 @@ public class Server {
 		}
 	}
 	
-	private static Environment[] prepareEnvironments() {
+	private static Environment[] prepareEnvironments(String ssh) {
 		
-		DataBaseManager db = new DataBaseManager(true, "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
+		DataBaseManager db = new DataBaseManager(ssh.equals("tun"), "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
 		
 		HelpCommand.register(clientsCommandsMap);
 		ShowCommand.register(clientsCommandsMap);
@@ -156,7 +162,6 @@ public class Server {
 		InfoCommand.register(clientsCommandsMap);
 		AddCommand.register(clientsCommandsMap);
 		RemoveByIDCommand.register(clientsCommandsMap);
-		ShuffleCommand.register(clientsCommandsMap);
 		HistoryCommand.register(clientsCommandsMap);
 		RemoveAnyBySCCommand.register(clientsCommandsMap);
 		AverageOfTSCommand.register(clientsCommandsMap);
@@ -164,10 +169,12 @@ public class Server {
 		AddIfMaxCommand.register(clientsCommandsMap);
 		AddIfMinCommand.register(clientsCommandsMap);
 		UpdateCommand.register(clientsCommandsMap);
+		RegisterCommand.register(clientsCommandsMap);
+		LoginCommand.register(clientsCommandsMap);
 		
 		internalCommandsMap.putAll(clientsCommandsMap);
 		ExitCommand.register(internalCommandsMap);
 		
-		return new Environment[] { new Environment(db, clientsCommandsMap, stack),  new Environment(db, internalCommandsMap, stack)};
+		return new Environment[] { new Environment(userTable, db, clientsCommandsMap),  new Environment(userTable, db, internalCommandsMap)};
 	}
 }

@@ -47,4 +47,9 @@ public class ExitCommand extends Command {
 	public String getHelp() {
 		return "This command stops the application!";
 	}
+	
+	@Override
+	public boolean isAuthorizationRequired() {
+		return false;
+	}
 }

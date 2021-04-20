@@ -32,8 +32,8 @@ public class ClientHandler implements Callable<String> {
 
 	@Override
 	public String call() throws Exception {
-		String host = asyncChannel.getRemoteAddress().toString();
-		logger.info("Incoming connection from: " + host.replace("/", ""));
+		String host = asyncChannel.getRemoteAddress().toString().replace("/", "");
+		logger.info("Incoming connection from: " + host);
 
 		final ByteBuffer buffer = ByteBuffer.wrap(new byte[4096 * 4]);
 
@@ -41,10 +41,10 @@ public class ClientHandler implements Callable<String> {
 			try {
 
 				CommandPackage per = ClientReader.read(buffer);
-				logger.info("Command from " + host.replace("/", "") + ": " + per.getName());
+				logger.info("Command from " + host + (per.getLogin() != null ? " (user - " + per.getLogin() + "): " : ": ") + per.getName());
 				
 				Future<ByteBuffer> futureOutBuffer = clientExecutor.submit(() -> {
-					return ClientCommandExecutor.executeCommand(per, clientEnv);
+					return ClientCommandExecutor.executeCommand(per, clientEnv, host);
 				});
 
 				ByteBuffer outBuffer = futureOutBuffer.get();
@@ -53,23 +53,24 @@ public class ClientHandler implements Callable<String> {
 					try {
 						ClientWriter.write(asyncChannel, outBuffer);
 					} catch (InterruptedException | ExecutionException | IOException e) {
-						logger.error("Error while writing output to " + host.replace("/", ""));
+						logger.error("Error while writing output to " + host);
 					}
 				});
 				
-				logger.info("Send command's output to " + host.replace("/", ""));
+				logger.info("Send command's output to " + host);
 				
 				buffer.flip();
 				buffer.put(new byte[buffer.remaining()]);
 				buffer.clear();
 
 			} catch (Exception e) {
-				logger.error("Error while handling " + host.replace("/", ""));
+				logger.error("Error while handling " + host);
 			}
 		}
 
 		asyncChannel.close();
-		logger.info("Client " + host.replace("/", "") + " was successfully served");
+		clientEnv.removeUser(host);
+		logger.info("Client " + host + " was successfully served");
 		return host;
 	}
 }

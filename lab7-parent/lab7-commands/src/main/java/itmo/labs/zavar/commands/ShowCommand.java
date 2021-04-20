@@ -3,13 +3,19 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Outputs all elements of the collection in a string representation to the
@@ -32,37 +38,53 @@ public class ShowCommand extends Command {
 		} else {
 			super.args = args;
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				if (env.getCollection().isEmpty()) {
-					throw new CommandRunningException("Collection is empty!");
-				}
-
-				env.getCollection().stream().forEachOrdered((sg) -> {
-					pr.println("ID: " + sg.getId());
-					pr.println("Name: " + sg.getName());
-					pr.println("Coordinte X: " + sg.getCoordinates().getX());
-					pr.println("Coordinte Y: " + sg.getCoordinates().getY());
-					pr.println("Creation date: " + sg.getCreationLocalDate());
-					pr.println("Students count: " + sg.getStudentsCount());
-					pr.println("Expelled students: " + sg.getExpelledStudents());
-					pr.println("Transferred students: " + sg.getTransferredStudents());
-					pr.println("Form of Education: " + sg.getFormOfEducation());
-					if (sg.getGroupAdmin() != null) {
-						pr.println("Admin's name: " + sg.getGroupAdmin().getName());
-						pr.println("Admin's passport ID: " + sg.getGroupAdmin().getPassportID());
-						pr.println("Admin's eye color: " + sg.getGroupAdmin().getEyeColor());
-						pr.println("Admin's hair color: " + sg.getGroupAdmin().getHairColor());
-						if (sg.getGroupAdmin().getNationality() != null) {
-							pr.println("Admin's nationality: " + sg.getGroupAdmin().getNationality());
-						}
-						pr.println("Admin's location X: " + sg.getGroupAdmin().getLocation().getX());
-						pr.println("Admin's location Y: " + sg.getGroupAdmin().getLocation().getY());
-						pr.println("Admin's location Z: " + sg.getGroupAdmin().getLocation().getZ());
-						pr.println("Admin's location name: " + sg.getGroupAdmin().getLocation().getName());
-						pr.println();
-					} else {
-						pr.println();
+				
+				try {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+					if (rs.getInt(1) == 0) {
+						con.close();
+						throw new CommandRunningException("Collection is empty!");
 					}
-				});
+					stmt = con.prepareStatement(DbUtils.getAll());
+					rs = stmt.executeQuery();
+					
+					while(rs.next()) {
+						pr.println("ID: " + rs.getString("id"));
+						pr.println("Owner: " + rs.getString("owner"));
+						pr.println("Name: " + rs.getString("name"));
+						pr.println("Coordinte X: " + rs.getString("x"));
+						pr.println("Coordinte Y: " + rs.getString("y"));
+						pr.println("Creation date: " + rs.getString("creationdate"));
+						pr.println("Students count: " + rs.getString("studentscount"));
+						pr.println("Expelled students: " + rs.getString("expelledstudents"));
+						pr.println("Transferred students: " + rs.getString("transferredstudents"));
+						pr.println("Form of Education: " + rs.getString("formofeducation"));
+						if (rs.getString("adminname") != null) {
+							pr.println("Admin's name: " + rs.getString("adminname"));
+							pr.println("Admin's passport ID: " + rs.getString("adminpassportid"));
+							pr.println("Admin's eye color: " + rs.getString("admineyecolor"));
+							pr.println("Admin's hair color: " + rs.getString("adminhaircolor"));
+							if (rs.getString("adminnationality") != null) {
+								pr.println("Admin's nationality: " + rs.getString("adminnationality"));
+							}
+							pr.println("Admin's location X: " + rs.getString("adminlocationx"));
+							pr.println("Admin's location Y: " + rs.getString("adminlocationy"));
+							pr.println("Admin's location Z: " + rs.getString("adminlocationz"));
+							pr.println("Admin's location name: " + rs.getString("adminlocationname"));
+							pr.println();
+						} else {
+							pr.println();
+						}
+					}
+					con.close();
+					
+				} catch (SQLException e) {
+					throw new CommandSQLException(e.getMessage());
+				}
 			}
 		}
 	}

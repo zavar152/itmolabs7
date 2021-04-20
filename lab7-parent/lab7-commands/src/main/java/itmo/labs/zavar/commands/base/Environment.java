@@ -2,9 +2,9 @@ package itmo.labs.zavar.commands.base;
 
 import java.util.HashMap;
 import java.util.Stack;
+import java.util.concurrent.ConcurrentHashMap;
 
 import itmo.labs.zavar.db.DataBaseManager;
-import itmo.labs.zavar.studygroup.StudyGroup;
 
 /**
  * This class contains main information: commands' map, collection, command's
@@ -17,9 +17,9 @@ import itmo.labs.zavar.studygroup.StudyGroup;
 public class Environment {
 	private HashMap<String, Command> map;
 	private History history;
-	private Stack<StudyGroup> stack;
 	private DataBaseManager db;
-
+	private ConcurrentHashMap<String, String> userTable;
+	
 	/**
 	 * Creates new server environment for commands. Collection's creation date will
 	 * be equals to file's creation date. If it won't be able to get file's
@@ -29,17 +29,41 @@ public class Environment {
 	 * @param map   Commands' map.
 	 * @param stack Main collection.
 	 */
-	public Environment(DataBaseManager db, HashMap<String, Command> map, Stack<StudyGroup> stack) {
+	public Environment(ConcurrentHashMap<String, String> userTable, DataBaseManager db, HashMap<String, Command> map) {
 		this.map = map;
-		this.stack = stack;
 		history = new History();
+		this.userTable = userTable;
 		this.db = db;
 	}
-	
+	/**
+	 * Returns DataBaseManager to get connection with database
+	 *  
+	 * @return DataBaseManager
+	 */
 	public DataBaseManager getDbManager() {
 		return db;
 	}
 
+	public void putUser(String host, String user) {
+		userTable.put(host, user);
+	}
+	
+	public void removeUser(String host) {
+		userTable.remove(host);
+	}
+	
+	public String getUser(String host) {
+		return userTable.get(host);
+	}
+	
+	public boolean containsUser(String user) {
+		return userTable.contains(user);
+	}
+	
+	public boolean containsHost(String host) {
+		return userTable.containsKey(host);
+	}
+	
 	/**
 	 * Creates new client environment for commands.
 	 * 
@@ -58,16 +82,7 @@ public class Environment {
 	public HashMap<String, Command> getCommandsMap() {
 		return map;
 	}
-
-	/**
-	 * Returns main collection.
-	 * 
-	 * @return {@link Stack}
-	 */
-	public Stack<StudyGroup> getCollection() {
-		return stack;
-	}
-
+	
 	/**
 	 * Returns history.
 	 * 

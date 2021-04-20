@@ -18,7 +18,6 @@ public class StudyGroup implements Comparable<StudyGroup>, Serializable {
 	
 	private static final long serialVersionUID = -3915109296748159784L;
 	
-	private long id;
 	private String name;
 	private Coordinates coordinates;
 	private LocalDate creationDate;
@@ -39,7 +38,6 @@ public class StudyGroup implements Comparable<StudyGroup>, Serializable {
 	/**
 	 * Constructor with parameters. Use it to create objects.
 	 * 
-	 * @param id                  Group's id. Must be unique and greater than 0.
 	 * @param name                Group's name. Name can't be <tt>null</tt> or
 	 *                            empty.
 	 * @param coordinates         Group's coordinates. Can't be <tt>null</tt>.
@@ -58,14 +56,9 @@ public class StudyGroup implements Comparable<StudyGroup>, Serializable {
 	 * @see FormOfEducation
 	 * @see Person
 	 */
-	public StudyGroup(long id, String name, Coordinates coordinates, Long studentsCount, int expelledStudents,
+	public StudyGroup(String name, Coordinates coordinates, Long studentsCount, int expelledStudents,
 			long transferredStudents, FormOfEducation formOfEducation, Person groupAdmin)
 			throws IllegalArgumentException {
-		if (id <= 0) {
-			throw new IllegalArgumentException("Id should be greater than 0");
-		} else {
-			this.id = id;
-		}
 
 		if (name == null || name.isEmpty()) {
 			throw new IllegalArgumentException("Name can't be null or empty");
@@ -188,20 +181,12 @@ public class StudyGroup implements Comparable<StudyGroup>, Serializable {
 		this.groupAdmin = groupAdmin;
 	}
 
-	public long getId() {
-		return id;
-	}
-
-	public void setId(long id) {
-		if (id <= 0) {
-			throw new IllegalArgumentException("Id should be greater than 0");
-		} else {
-			this.id = id;
-		}
-	}
-
 	public LocalDate getCreationLocalDate() {
 		return creationDate;
+	}
+	
+	public void setCreationLocalDate(LocalDate d) {
+		creationDate = d;
 	}
 
 	public Date getCreationDate() throws ParseException {
@@ -214,7 +199,7 @@ public class StudyGroup implements Comparable<StudyGroup>, Serializable {
 
 	@Override
 	public String toString() {
-		return "StudyGroup [id=" + id + ", name=" + name + ", coordinateX=" + coordinates.getX() + ", coordinateY="
+		return "StudyGroup [name=" + name + ", coordinateX=" + coordinates.getX() + ", coordinateY="
 				+ coordinates.getY() + ", creationDate=" + creationDate + ", studentsCount=" + studentsCount
 				+ ", expelledStudents=" + expelledStudents + ", transferredStudents=" + transferredStudents
 				+ ", formOfEducation=" + formOfEducation + ", groupAdmin=[" + groupAdmin + "]]";

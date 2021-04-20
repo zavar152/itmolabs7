@@ -3,13 +3,19 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Outputs the number of elements whose transferredStudents field value is
@@ -40,12 +46,26 @@ public class CountGreaterThanTSCommand extends Command {
 			}
 
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				if (env.getCollection().isEmpty()) {
-					throw new CommandRunningException("Collection is empty!");
-				}
+				try {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					rs.next();
+					if (rs.getInt(1) == 0) {
+						con.close();
+						throw new CommandRunningException("Collection is empty!");
+					}
 
-				long count = env.getCollection().stream().filter((p) -> p.getTransferredStudents() > tr).count();
-				((PrintStream) outStream).println("Count of elements: " + count);
+					stmt = con.prepareStatement(DbUtils.countGreaterThanTs(tr));
+					rs = stmt.executeQuery();
+					rs.next();
+					long count = rs.getLong(1);
+					((PrintStream) outStream).println("Count of elements: " + count);
+					con.close();
+				} catch (SQLException e) {
+					throw new CommandSQLException(e.getMessage());
+				}
 			}
 		}
 	}

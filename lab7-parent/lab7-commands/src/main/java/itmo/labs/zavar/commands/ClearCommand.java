@@ -3,12 +3,17 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Clears the collection. Doesn't require any arguments.
@@ -29,8 +34,16 @@ public class ClearCommand extends Command {
 		} else {
 			super.args = args;
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-				env.getCollection().clear();
-				((PrintStream) outStream).println("Collection cleared");
+				try {
+					Connection con = env.getDbManager().getConnection();
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.clearAll());
+					stmt.execute();
+					con.close();
+					((PrintStream) outStream).println("Collection cleared");
+				} catch (SQLException e) {
+					throw new CommandSQLException(e.getMessage());
+				}
 			}
 		}
 	}

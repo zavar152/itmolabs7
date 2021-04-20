@@ -34,21 +34,24 @@ import itmo.labs.zavar.commands.ExitCommand;
 import itmo.labs.zavar.commands.HelpCommand;
 import itmo.labs.zavar.commands.HistoryCommand;
 import itmo.labs.zavar.commands.InfoCommand;
+import itmo.labs.zavar.commands.LoginCommand;
+import itmo.labs.zavar.commands.RegisterCommand;
 import itmo.labs.zavar.commands.RemoveAnyBySCCommand;
 import itmo.labs.zavar.commands.RemoveByIDCommand;
 import itmo.labs.zavar.commands.ShowCommand;
-import itmo.labs.zavar.commands.ShuffleCommand;
 import itmo.labs.zavar.commands.UpdateCommand;
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Command.ExecutionType;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 
 public class Client {
 	
 	private static HashMap<String, Command> commandsMap = new HashMap<String, Command>();
-
-
+	private static boolean isLogin = false;
+	private static String login, password; 
+	
 	public static void main(String args[]) throws IOException, InterruptedException {
 		
 		if(args.length != 2) {
@@ -63,7 +66,6 @@ public class Client {
 		InfoCommand.register(commandsMap);
 		AddCommand.register(commandsMap);
 		RemoveByIDCommand.register(commandsMap);
-		ShuffleCommand.register(commandsMap);
 		HistoryCommand.register(commandsMap);
 		RemoveAnyBySCCommand.register(commandsMap);
 		AverageOfTSCommand.register(commandsMap);
@@ -72,6 +74,8 @@ public class Client {
 		AddIfMinCommand.register(commandsMap);
 		UpdateCommand.register(commandsMap);
 		ExitCommand.register(commandsMap);
+		RegisterCommand.register(commandsMap);
+		LoginCommand.register(commandsMap);
 		
 		Environment env = new Environment(commandsMap);
 		
@@ -116,31 +120,42 @@ public class Client {
 
 				if (env.getCommandsMap().containsKey(command[0])) {
 					try {
-						env.getHistory().addToGlobal(input);
-						env.getCommandsMap().get(command[0]).execute(ExecutionType.CLIENT, env, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
-						env.getHistory().clearTempHistory();
-						ByteArrayOutputStream stream = new ByteArrayOutputStream();
-						ObjectOutputStream ser = new ObjectOutputStream(stream);
-						ser.writeObject(env.getCommandsMap().get(command[0]).getPackage());
-						String str = Base64.getMimeEncoder().encodeToString(stream.toByteArray());
-						out.println(str);
-						ser.close();
-						stream.close();
-
-						buf.rewind();
-						int bytesRead = channel.read(buf);
-						buf.rewind();
-						byte[] b = new byte[bytesRead];
-						for (int i = 0; i < bytesRead; i++) {
-							b[i] = buf.get();
+						Command c = env.getCommandsMap().get(command[0]);
+						if (c.isAuthorizationRequired() && !isLogin) {
+							throw new CommandPermissionException();
+						} else {
+							env.getHistory().addToGlobal(input);
+							c.execute(ExecutionType.CLIENT, env, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
+							env.getHistory().clearTempHistory();
+							ByteArrayOutputStream stream = new ByteArrayOutputStream();
+							ObjectOutputStream ser = new ObjectOutputStream(stream);
+							ser.writeObject(c.getPackage(login, password));
+							String str = Base64.getMimeEncoder().encodeToString(stream.toByteArray());
+							out.println(str);
+							ser.close();
+							stream.close();
+							buf.rewind();
+							int bytesRead = channel.read(buf);
+							buf.rewind();
+							byte[] b = new byte[bytesRead];
+							for (int i = 0; i < bytesRead; i++) {
+								b[i] = buf.get();
+							}
+							ByteArrayInputStream stream2 = new ByteArrayInputStream(Base64.getMimeDecoder().decode(b));
+							ObjectInputStream obj = new ObjectInputStream(stream2);
+							String per = (String) obj.readObject();
+							if (per.contains("true")) {
+								System.out.println("Login successful!");
+								isLogin = true;
+								login = (String) c.getArgs()[0];
+								password = (String) c.getArgs()[1];
+							} else {
+								System.out.println(per);
+							}
+							buf.flip();
+							buf.put(new byte[buf.remaining()]);
+							buf.clear();
 						}
-						ByteArrayInputStream stream2 = new ByteArrayInputStream(Base64.getMimeDecoder().decode(b));
-						ObjectInputStream obj = new ObjectInputStream(stream2);
-						String per = (String) obj.readObject();
-						System.out.println(per);
-						buf.flip();
-						buf.put(new byte[buf.remaining()]);
-						buf.clear();
 					} catch (CommandException e) {
 						env.getHistory().clearTempHistory();
 						System.err.println(e.getMessage());
@@ -151,6 +166,7 @@ public class Client {
 			} catch (SocketException | NegativeArraySizeException e) {
 				System.out.println("Server is unavailable!\nWaiting for connection...");
 				connected = false;
+				isLogin = false;
 				
 				while(!connected) {
 					try {
@@ -168,6 +184,7 @@ public class Client {
 				os = socket.getOutputStream();
 				writer = new OutputStreamWriter(os, StandardCharsets.US_ASCII);
 				out = new PrintWriter(writer, true);
+				channel.close();
 				channel = Channels.newChannel(is);
 				
 				System.out.println("Connected!");

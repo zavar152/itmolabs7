@@ -76,10 +76,19 @@ public abstract class Command {
 	public abstract void execute(ExecutionType type, Environment env, Object[] args, InputStream inStream, OutputStream outStream)
 			throws CommandException;
 
-	public final CommandPackage getPackage() {
-		return new CommandPackage(getName(), args);
+	/**
+	 * 
+	 * @return {@link CommandPackage} for sending to server
+	 */
+	public final CommandPackage getPackage(String login, String password) {
+		return new CommandPackage(getName(), args, login, password);
 	}
 	
+	/**
+	 * Returns array of entered arguments
+	 * 
+	 * @return {@link Object}
+	 */
 	public final Object[] getArgs() {
 		return args;
 	}
@@ -145,6 +154,10 @@ public abstract class Command {
 		return false;
 	}
 
+	public boolean isAuthorizationRequired() {
+		return true;
+	}
+	
 	/**
 	 * This method returns name mappings for input. Must be overrided if command has
 	 * additional input.
@@ -156,6 +169,12 @@ public abstract class Command {
 		return new String[] {};
 	}
 	
+	/**
+	 * Enumeration for execution type. Using for client-server interraction.
+	 * 
+	 * @author Zavar
+	 * @version 1.0
+	 */
 	public static enum ExecutionType
 	{
 		CLIENT,

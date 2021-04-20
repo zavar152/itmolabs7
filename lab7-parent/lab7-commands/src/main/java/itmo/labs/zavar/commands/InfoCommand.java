@@ -3,12 +3,18 @@ package itmo.labs.zavar.commands;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashMap;
 
 import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Environment;
+import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandSQLException;
 
 /**
  * Outputs information about the collection to the standard output stream.
@@ -32,37 +38,31 @@ public class InfoCommand extends Command {
 			super.args = args;
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT)  | type.equals(ExecutionType.INTERNAL_CLIENT)) {
 				PrintStream pr = ((PrintStream) outStream);
-				pr.println("Type: " + env.getCollection().getClass().getName());
-				pr.println("Creation date: N/A");
-				pr.println("Count of elements: " + env.getCollection().size());
-				
-				/*ResultSet rs = null;
 				try {
 					Connection con = env.getDbManager().getConnection();
-					Statement stmt;
-					stmt = con.createStatement();
-					rs = stmt.executeQuery(DbUtils.loadAll());
-					//rs = 
+					PreparedStatement stmt;
+					stmt = con.prepareStatement(DbUtils.getCount());
+					ResultSet rs = stmt.executeQuery();
+					int count = 0;
+					String date = "N/A";
 					while (rs.next()) {
-						long id = rs.getLong("id");
-						String name = rs.getString("name");
-						Coordinates coordinates = new Coordinates(rs.getDouble("x"), rs.getFloat("y"));
-						Long studentsCount = rs.getLong("studentsCount");
-						int expelledStudents = rs.getInt("expelledStudents");
-						long transferredStudents = rs.getLong("transferredStudents");
-						FormOfEducation formOfEducation = FormOfEducation.valueOf(rs.getString("formOfEducation"));
-						Person groupAdmin = null;
-						
-						System.out.println(new StudyGroup(id, name, coordinates, studentsCount, expelledStudents, transferredStudents, formOfEducation, groupAdmin).toString());
-						
+						count = rs.getInt(1);
 					}
-					rs.close();
+					
+					stmt = con.prepareStatement(DbUtils.getCreationDate());
+					rs = stmt.executeQuery();
+					while (rs.next()) {
+						date = rs.getString(1);
+					}
+					pr.println("Database type: PostgreSQL");
+					pr.println("Database catalog: " + con.getCatalog());
+					pr.println("Database schema: " + con.getSchema());
+					pr.println("Creation date: " + date);
+					pr.println("Count of elements: " + count);
 					con.close();
 				} catch (SQLException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				} */
-				
+					throw new CommandSQLException(e.getMessage());
+				}
 			}
 		}
 	}
