@@ -64,7 +64,6 @@ public class ClientHandler implements Callable<String> {
 				buffer.clear();
 
 			} catch (Exception e) {
-				e.printStackTrace();
 				logger.error("Error while handling " + host);
 			}
 		}

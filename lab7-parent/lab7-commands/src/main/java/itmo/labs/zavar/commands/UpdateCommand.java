@@ -19,6 +19,7 @@ import itmo.labs.zavar.commands.base.InputParser;
 import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 import itmo.labs.zavar.exception.CommandRunningException;
 import itmo.labs.zavar.exception.CommandSQLException;
 import itmo.labs.zavar.studygroup.Color;
@@ -64,6 +65,7 @@ public class UpdateCommand extends Command {
 		}
 	}
 
+	@SuppressWarnings("resource")
 	@Override
 	public void execute(ExecutionType type, Environment env, Object[] args, InputStream inStream, OutputStream outStream)
 			throws CommandException {
@@ -95,6 +97,16 @@ public class UpdateCommand extends Command {
 				try {
 					long id = Long.parseLong((String) args[0]);	
 					PreparedStatement stmt;
+					
+					stmt = con.prepareStatement(DbUtils.getOwner(id));
+					ResultSet rs = stmt.executeQuery();
+					if(!rs.next()) {
+						throw new CommandArgumentException("No such id in the collection!");
+					} else {
+						if(!rs.getString(1).equals(env.getUser((String) args[args.length-1]))) {
+							throw new CommandPermissionException();
+						}
+					}
 					int f = (Integer) args[1];
 					switch (f) {
 					case 1:
@@ -113,6 +125,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Element updated");
+							pr.println("Updating is completed!");
 						break;
 					case 2:
 						stmt = con.prepareStatement("UPDATE studygroups SET name = '" + (String) args[2] + "' WHERE id = " + id);
@@ -121,6 +134,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Name updated");
+							pr.println("Updating is completed!");
 						break;
 					case 3:
 						stmt = con.prepareStatement("UPDATE studygroups SET x = " + ((Coordinates) args[2]).getX() + ", y = " + ((Coordinates) args[2]).getY() + " WHERE id = " + id);
@@ -129,6 +143,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Coordinates updated");
+							pr.println("Updating is completed!");
 						break;
 					case 4:
 						stmt = con.prepareStatement("UPDATE studygroups SET studentscount = " + (Long) args[2] + " WHERE id = " + id);
@@ -137,6 +152,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Students count updated");
+							pr.println("Updating is completed!");
 						break;
 					case 5:
 						stmt = con.prepareStatement("UPDATE studygroups SET expelledstudents = " + (Integer) args[2] + " WHERE id = " + id);
@@ -145,6 +161,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Expelled students updated");
+							pr.println("Updating is completed!");
 						break;
 					case 6:
 						stmt = con.prepareStatement("UPDATE studygroups SET transferredstudents = " + (Long) args[2] + " WHERE id = " + id);
@@ -153,6 +170,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Transferred students updated");
+							pr.println("Updating is completed!");
 						break;
 					case 7:
 						stmt = con.prepareStatement("UPDATE studygroups SET formofeducation = '" + (FormOfEducation) args[2] + "' WHERE id = " + id);
@@ -161,6 +179,7 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Form of education updated");
+							pr.println("Updating is completed!");
 						break;
 					case 8:
 						Person p = (Person) args[2];
@@ -171,15 +190,15 @@ public class UpdateCommand extends Command {
 						}
 						else
 							pr.println("Group's admin updated");
+							pr.println("Updating is completed!");
 						break;
 
 					}
 					con.close();				
 				} catch (Exception e) {
-					if(e instanceof CommandArgumentException) {
+					if(e instanceof CommandArgumentException || e instanceof CommandPermissionException) {
 						throw new CommandException(e.getMessage());
 					} else {
-						e.printStackTrace();
 						try {
 							con.close();
 						} catch (SQLException e1) { }
@@ -192,11 +211,22 @@ public class UpdateCommand extends Command {
 				Connection con;
 				PreparedStatement stmt;
 				long id = Long.parseLong((String) args[0]);
+				con = env.getDbManager().getConnection();
+				
 				try {
-					con = env.getDbManager().getConnection();
 					
+				stmt = con.prepareStatement(DbUtils.getOwner(id));
+				ResultSet rs = stmt.executeQuery();
+				if(!rs.next()) {
+					throw new CommandArgumentException("No such id in the collection!");
+				} else {
+					if(!rs.getString(1).equals(env.getUser(type.equals(ExecutionType.INTERNAL_CLIENT) ? "internal" : (String) args[args.length-1]))) {
+						throw new CommandPermissionException();
+					}
+				}
+				
 					stmt = con.prepareStatement(DbUtils.getById(id));
-					ResultSet rs = stmt.executeQuery();
+					rs = stmt.executeQuery();
 					
 					if(rs.next()) {
 						if(rs.getString("adminname") != null) {
@@ -216,10 +246,9 @@ public class UpdateCommand extends Command {
 					}
 					
 				} catch (Exception e) {
-					if(e instanceof CommandArgumentException) {
+					if(e instanceof CommandArgumentException || e instanceof CommandPermissionException) {
 						throw new CommandException(e.getMessage());
 					} else {
-						e.printStackTrace();
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
 					}
 				}

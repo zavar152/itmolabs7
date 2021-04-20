@@ -40,6 +40,7 @@ import itmo.labs.zavar.commands.base.Command.ExecutionType;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.db.DataBaseManager;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 
 public class Server {
 	
@@ -94,7 +95,7 @@ public class Server {
 								try {
 									Command c = internalEnv.getCommandsMap().get(command[0]);
 									if(c.isAuthorizationRequired() && !userTable.containsKey("internal")) {
-										System.out.println("You don't have permissions to execute this command!");
+										throw new CommandPermissionException();
 									} else {
 										internalEnv.getHistory().addToGlobal(input);
 										c.execute(ExecutionType.INTERNAL_CLIENT, internalEnv, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);

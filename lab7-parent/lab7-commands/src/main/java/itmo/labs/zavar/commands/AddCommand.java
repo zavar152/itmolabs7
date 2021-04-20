@@ -165,11 +165,15 @@ public class AddCommand extends Command {
 					group = (StudyGroup) args[0];
 				}
 				
+				if(type.equals(ExecutionType.INTERNAL_CLIENT)) {
+					args = new String[] {"internal"};
+				}
+				
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
 					Connection con = env.getDbManager().getConnection();
 					PreparedStatement stmt;
 					
-					stmt = con.prepareStatement(DbUtils.addElement(group));
+					stmt = con.prepareStatement(DbUtils.addElement(group, env.getUser((String) args[args.length-1])));
 					
 					if (stmt.executeUpdate() == 0) {
 						pr.println("Element didn't add!");

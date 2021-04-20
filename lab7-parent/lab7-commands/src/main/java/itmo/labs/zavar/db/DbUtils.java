@@ -36,6 +36,10 @@ public class DbUtils {
 		return "SELECT MIN(creationdate) FROM studygroups;";
 	}
 	
+	public static String getOwner(long id) {
+		return "SELECT owner FROM studygroups WHERE id = " + id + ";";
+	}
+	
 	public static String clearAll() {
 		return "TRUNCATE TABLE studygroups;";
 	}
@@ -46,6 +50,10 @@ public class DbUtils {
 	
 	public static String deleteBySc(long sc) {
 		return "DELETE FROM studygroups WHERE studentsCount = " + sc + ";";
+	}
+	
+	public static String getBySc(long sc) {
+		return "SELECT owner, studentsCount FROM studygroups WHERE studentsCount = " + sc + ";";
 	}
 	
 	public static String getById(long id) {
@@ -60,16 +68,16 @@ public class DbUtils {
 		return "DROP TABLE studygroups;";
 	}
 	
-	public static String addElement(StudyGroup group) {
+	public static String addElement(StudyGroup group, String owner) {
 		if(group.getGroupAdmin() == null) {
-			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName) "
+			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName, owner) "
 					+ "VALUES ((SELECT nextval('sequence_id')), '" + group.getName() + "', " + group.getCoordinates().getX() + ", " + group.getCoordinates().getY() + ", '" + group.getCreationLocalDate() + "', " + group.getStudentsCount() + ", " + group.getExpelledStudents() + ", " + group.getTransferredStudents() + ", '" + group.getFormOfEducation() + "', "
-							+ "'null', " + 0 + ", 'BLACK', 'BLACK', 'USA', " + 0 + ", " + 0 + ", " + 0 + ", '');";
+							+ "null, " + 0 + ", 'BLACK', 'BLACK', 'USA', " + 0 + ", " + 0 + ", " + 0 + ", '', '" + owner + "');";
 		}
 		else {
-			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName) "
+			return "INSERT INTO studygroups (id, name, x, y, creationDate, studentsCount, expelledStudents, transferredStudents, formOfEducation, adminName, adminPassportID, adminEyeColor, adminHairColor, adminNationality, adminLocationX, adminLocationY, adminLocationZ, adminLocationName, owner) "
 					+ "VALUES ((SELECT nextval('sequence_id')), '" + group.getName() + "', " + group.getCoordinates().getX() + ", " + group.getCoordinates().getY() + ", '" + group.getCreationLocalDate() + "', " + group.getStudentsCount() + ", " + group.getExpelledStudents() + ", " + group.getTransferredStudents() + ", '" + group.getFormOfEducation() + "', "
-							+ "'" + group.getGroupAdmin().getName() + "', " + group.getGroupAdmin().getPassportID() + ", '" + group.getGroupAdmin().getEyeColor() + "', '" + group.getGroupAdmin().getHairColor() + "', '" + group.getGroupAdmin().getNationality() + "', " + group.getGroupAdmin().getLocation().getX() + ", " + group.getGroupAdmin().getLocation().getY() + ", " + group.getGroupAdmin().getLocation().getZ() + ", '" + group.getGroupAdmin().getLocation().getName() + "');";
+							+ "'" + group.getGroupAdmin().getName() + "', " + group.getGroupAdmin().getPassportID() + ", '" + group.getGroupAdmin().getEyeColor() + "', '" + group.getGroupAdmin().getHairColor() + "', '" + group.getGroupAdmin().getNationality() + "', " + group.getGroupAdmin().getLocation().getX() + ", " + group.getGroupAdmin().getLocation().getY() + ", " + group.getGroupAdmin().getLocation().getZ() + ", '" + group.getGroupAdmin().getLocation().getName() + "', '" + owner + "');";
 		}
 	}
 	
@@ -92,7 +100,8 @@ public class DbUtils {
 				+ "    adminLocationX real NOT NULL,\r\n"
 				+ "    adminLocationY real NOT NULL,\r\n"
 				+ "    adminLocationZ double precision NOT NULL,\r\n"
-				+ "    adminLocationName text NOT NULL CHECK ( length(adminLocationName) < 348 )\r\n"
+				+ "    adminLocationName text NOT NULL CHECK ( length(adminLocationName) < 348 ),\r\n"
+				+ "	   owner TEXT NOT NULL"
 				+ ");";
 	}
 	

@@ -166,6 +166,10 @@ public class AddIfMaxCommand extends Command {
 					temp1 = (StudyGroup) args[0];
 				}
 				
+				if(type.equals(ExecutionType.INTERNAL_CLIENT)) {
+					args = new String[] {"internal"};
+				}
+				
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
 					Connection con = env.getDbManager().getConnection();
 					PreparedStatement stmt;
@@ -176,7 +180,7 @@ public class AddIfMaxCommand extends Command {
 
 					if (temp1.getCreationLocalDate().compareTo(LocalDate.parse(rs.getString(1))) > 0) {
 
-						stmt = con.prepareStatement(DbUtils.addElement(temp1));
+						stmt = con.prepareStatement(DbUtils.addElement(temp1, env.getUser((String) args[args.length-1])));
 
 						if (stmt.executeUpdate() == 0) {
 							pr.println("Element didn't add!");

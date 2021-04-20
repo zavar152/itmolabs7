@@ -14,6 +14,7 @@ import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 import itmo.labs.zavar.exception.CommandRunningException;
 import itmo.labs.zavar.exception.CommandSQLException;
 
@@ -57,16 +58,30 @@ public class RemoveByIDCommand extends Command {
 						throw new CommandRunningException("Collection is empty!");
 					}
 					try {
+						
+						stmt = con.prepareStatement(DbUtils.getOwner(id));
+						rs = stmt.executeQuery();
+						if(!rs.next()) {
+							throw new CommandArgumentException("No such id in the collection!");
+						} else {
+							if(!rs.getString(1).equals(env.getUser(type.equals(ExecutionType.INTERNAL_CLIENT) ? "internal" : (String) args[args.length-1]))) {
+								throw new CommandPermissionException();
+							}
+						}
+						
 						stmt = con.prepareStatement(DbUtils.deleteById(id));
 						if (stmt.executeUpdate() == 0) {
 							((PrintStream) outStream).println("No such element!");
 						} else {
 							((PrintStream) outStream).println("Element deleted!");
 						}
+					} catch (CommandPermissionException e) {
+						throw new CommandException(e.getMessage());
 					} catch (Exception e) {
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					} finally {
+						con.close();
 					}
-					con.close();
 				}
 			} catch (SQLException e) {
 				throw new CommandSQLException(e.getMessage());

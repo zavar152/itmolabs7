@@ -14,6 +14,7 @@ import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 import itmo.labs.zavar.exception.CommandRunningException;
 import itmo.labs.zavar.exception.CommandSQLException;
 
@@ -49,29 +50,44 @@ public class RemoveAnyBySCCommand extends Command {
 			try {
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
 					Connection con = env.getDbManager().getConnection();
-					PreparedStatement stmt;
-					stmt = con.prepareStatement(DbUtils.getCount());
-					ResultSet rs = stmt.executeQuery();
-					rs.next();
-					if (rs.getInt(1) == 0) {
-						con.close();
-						throw new CommandRunningException("Collection is empty!");
-					}
 					try {
-						stmt = con.prepareStatement(DbUtils.deleteBySc(sc));
-						if (stmt.executeUpdate() == 0) {
+						PreparedStatement stmt;
+						stmt = con.prepareStatement(DbUtils.getCount());
+						ResultSet rs = stmt.executeQuery();
+						rs.next();
+						if (rs.getInt(1) == 0) {
+							con.close();
+							throw new CommandRunningException("Collection is empty!");
+						}
+
+						stmt = con.prepareStatement(DbUtils.getBySc(sc));
+						rs = stmt.executeQuery();
+						int d = 0;
+						if (!rs.next()) {
 							((PrintStream) outStream).println("No such element!");
 						} else {
-							((PrintStream) outStream).println("Element deleted!");
+							do {
+								if (!rs.getString(1).equals(env.getUser(type.equals(ExecutionType.INTERNAL_CLIENT) ? "internal" : (String) args[args.length - 1]))) {
+									throw new CommandPermissionException();
+								} else {
+									stmt = con.prepareStatement(DbUtils.deleteBySc(sc));
+									stmt.executeUpdate();
+									d++;
+								}
+							} while (rs.next());
 						}
+						((PrintStream) outStream).println(d + " deleted!");
+					} catch (CommandPermissionException e) {
+						throw new CommandException(e.getMessage());
 					} catch (Exception e) {
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
+					} finally {
+						con.close();
 					}
-					con.close();
 				}
 			} catch (SQLException e) {
 				throw new CommandSQLException(e.getMessage());
-			}
+			} 
 		}
 	}
 

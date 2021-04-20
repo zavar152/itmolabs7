@@ -24,7 +24,7 @@ import itmo.labs.zavar.exception.CommandSQLException;
 public class LoginCommand extends Command {
 
 	private LoginCommand() {
-		super("login", "login", "password");
+		super("login");
 	}
 
 	@Override

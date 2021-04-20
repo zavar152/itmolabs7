@@ -44,6 +44,7 @@ import itmo.labs.zavar.commands.base.Command;
 import itmo.labs.zavar.commands.base.Command.ExecutionType;
 import itmo.labs.zavar.commands.base.Environment;
 import itmo.labs.zavar.exception.CommandException;
+import itmo.labs.zavar.exception.CommandPermissionException;
 
 public class Client {
 	
@@ -121,7 +122,7 @@ public class Client {
 					try {
 						Command c = env.getCommandsMap().get(command[0]);
 						if (c.isAuthorizationRequired() && !isLogin) {
-							System.out.println("You don't have permissions to execute this command!");
+							throw new CommandPermissionException();
 						} else {
 							env.getHistory().addToGlobal(input);
 							c.execute(ExecutionType.CLIENT, env, Arrays.copyOfRange(command, 1, command.length), System.in, System.out);
@@ -183,6 +184,7 @@ public class Client {
 				os = socket.getOutputStream();
 				writer = new OutputStreamWriter(os, StandardCharsets.US_ASCII);
 				out = new PrintWriter(writer, true);
+				channel.close();
 				channel = Channels.newChannel(is);
 				
 				System.out.println("Connected!");

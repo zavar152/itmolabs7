@@ -93,7 +93,7 @@ public class DataBaseManager {
 	        ds.setUsername(user);
 	        ds.setPassword(password);
 	        ds.setMinIdle(5);
-	        ds.setMaxIdle(10);
+	        ds.setMaxIdle(20);
 	        ds.setMaxOpenPreparedStatements(100);
 		}
 		

@@ -54,6 +54,7 @@ public class ShowCommand extends Command {
 					
 					while(rs.next()) {
 						pr.println("ID: " + rs.getString("id"));
+						pr.println("Owner: " + rs.getString("owner"));
 						pr.println("Name: " + rs.getString("name"));
 						pr.println("Coordinte X: " + rs.getString("x"));
 						pr.println("Coordinte Y: " + rs.getString("y"));
