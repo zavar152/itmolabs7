@@ -48,7 +48,12 @@ public class RemoveByIDCommand extends Command {
 
 			try {
 				if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-					Connection con = env.getDbManager().getConnection();
+					Connection con = null;
+					try {
+						con = env.getDbManager().getConnection();
+					} catch (SQLException e2) {
+						throw new CommandSQLException("Failed to connect to database!");
+					}
 					PreparedStatement stmt;
 					stmt = con.prepareStatement(DbUtils.getCount());
 					ResultSet rs = stmt.executeQuery();
@@ -80,7 +85,8 @@ public class RemoveByIDCommand extends Command {
 					} catch (Exception e) {
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
 					} finally {
-						con.close();
+						if(con != null)
+							con.close();
 					}
 				}
 			} catch (SQLException e) {

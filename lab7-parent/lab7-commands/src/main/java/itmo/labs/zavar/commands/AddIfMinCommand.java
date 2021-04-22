@@ -6,6 +6,7 @@ import java.io.PrintStream;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -19,6 +20,7 @@ import itmo.labs.zavar.db.DbUtils;
 import itmo.labs.zavar.exception.CommandArgumentException;
 import itmo.labs.zavar.exception.CommandException;
 import itmo.labs.zavar.exception.CommandRunningException;
+import itmo.labs.zavar.exception.CommandSQLException;
 import itmo.labs.zavar.studygroup.Color;
 import itmo.labs.zavar.studygroup.Coordinates;
 import itmo.labs.zavar.studygroup.Country;
@@ -172,9 +174,15 @@ public class AddIfMinCommand extends Command {
 					}
 					
 					if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
-						Connection con = env.getDbManager().getConnection();
+						Connection con = null;
 						PreparedStatement stmt;
 
+						try {
+							con = env.getDbManager().getConnection();
+						} catch (SQLException e2) {
+							throw new CommandSQLException("Failed to connect to database!");
+						}
+						
 						stmt = con.prepareStatement(DbUtils.getMinElement());
 						ResultSet rs = stmt.executeQuery();
 						rs.next();

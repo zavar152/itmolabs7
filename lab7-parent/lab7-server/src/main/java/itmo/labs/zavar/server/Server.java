@@ -153,7 +153,7 @@ public class Server {
 	
 	private static Environment[] prepareEnvironments(String ssh) {
 		
-		DataBaseManager db = new DataBaseManager(ssh.equals("tun"), "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
+		DataBaseManager db = new DataBaseManager(ssh, "s314935", "", "se.ifmo.ru", "studs", 2222, "pg", 2220, 5432);
 		
 		HelpCommand.register(clientsCommandsMap);
 		ShowCommand.register(clientsCommandsMap);

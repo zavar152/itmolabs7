@@ -40,7 +40,12 @@ public class ShowCommand extends Command {
 			if (type.equals(ExecutionType.SERVER) | type.equals(ExecutionType.SCRIPT) | type.equals(ExecutionType.INTERNAL_CLIENT)) {
 				
 				try {
-					Connection con = env.getDbManager().getConnection();
+					Connection con = null;
+					try {
+						con = env.getDbManager().getConnection();
+					} catch (SQLException e2) {
+						throw new CommandSQLException("Failed to connect to database!");
+					}
 					PreparedStatement stmt;
 					stmt = con.prepareStatement(DbUtils.getCount());
 					ResultSet rs = stmt.executeQuery();

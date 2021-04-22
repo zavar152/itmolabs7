@@ -90,9 +90,14 @@ public class LoginCommand extends Command {
 			if(type.equals(ExecutionType.SERVER) || type.equals(ExecutionType.INTERNAL_CLIENT)) {
 				Connection con = null;
 				try {
-					con = env.getDbManager().getConnection();
+					try {
+						con = env.getDbManager().getConnection();
+					} catch (SQLException e2) {
+						throw new CommandSQLException("Failed to connect to database!");
+					}
 					PreparedStatement stmt;
-					stmt = con.prepareStatement(DbUtils.getUser(login));
+					stmt = con.prepareStatement(DbUtils.getUser());
+					stmt.setString(1, login);
 					ResultSet rs = stmt.executeQuery();
 					if(rs.next()) {
 						if(rs.getString(2).equals(password)) {
@@ -116,9 +121,12 @@ public class LoginCommand extends Command {
 					}
 				} catch (SQLException e) {
 					throw new CommandSQLException(e.getMessage());
+				} catch (Exception e){
+					throw new CommandException(e.getMessage());
 				} finally {
 					try {
-						con.close();
+						if(con != null)
+							con.close();
 					} catch (SQLException e1) {}
 				}
 			}

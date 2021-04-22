@@ -19,7 +19,7 @@ public class DataBaseManager {
 	private static Logger logger = LogManager.getLogger(DataBaseManager.class.getName());
 	private static BasicDataSource ds = new BasicDataSource();
 
-	public DataBaseManager(boolean ssh, String user, String password, String sshHost, String baseName, int sshPort,
+	public DataBaseManager(String ssh, String user, String password, String sshHost, String baseName, int sshPort,
 			String remoteHost, int localPort, int remotePort) {
 
 		int attempts = 0;
@@ -39,7 +39,7 @@ public class DataBaseManager {
 				DataBaseManager.baseName = baseName;
 				DataBaseManager.host = "localhost";
 
-				if (ssh) {
+				if (ssh.equals("tun")) {
 					try {
 						tunnel = new SshTunnel(user, password, sshHost, sshPort, remoteHost, localPort, remotePort);
 						tunnel.connect();
@@ -54,9 +54,13 @@ public class DataBaseManager {
 						}
 					}
 				}
-				else {
+				else if(ssh.equals("hel")) {
 					DataBaseManager.host = remoteHost;
 					DataBaseManager.localPort = 5432;
+					break;
+				} else {
+					DataBaseManager.host = "localhost";
+					DataBaseManager.localPort = 2220;
 					break;
 				}
 			} catch (Exception e) {
@@ -71,7 +75,7 @@ public class DataBaseManager {
 		}
 	}
 
-	public synchronized Connection getConnection() {
+	public synchronized Connection getConnection() throws SQLException {
 		return DBCPDataSource.getConnection();
 	}
 
@@ -97,13 +101,8 @@ public class DataBaseManager {
 	        ds.setMaxOpenPreparedStatements(100);
 		}
 		
-		public static Connection getConnection() {
-			try {
-				return ds.getConnection();
-			} catch (SQLException e) {
-				logger.error("Failed to connect to database");
-			}
-			return null;
+		public static Connection getConnection() throws SQLException {
+			return ds.getConnection();
 		}
 
 		public static void close() {

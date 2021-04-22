@@ -84,9 +84,15 @@ public class RegisterCommand extends Command {
 			if(type.equals(ExecutionType.SERVER) || type.equals(ExecutionType.INTERNAL_CLIENT)) {
 				Connection con = null;
 				try {
-					con = env.getDbManager().getConnection();
+					try {
+						con = env.getDbManager().getConnection();
+					} catch (SQLException e2) {
+						throw new CommandSQLException("Failed to connect to database!");
+					}
 					PreparedStatement stmt;
-					stmt = con.prepareStatement(DbUtils.register(login, password));
+					stmt = con.prepareStatement(DbUtils.register());
+					stmt.setString(1, login);
+					stmt.setString(2, password);
 					stmt.executeUpdate();
 					pr.println("Registration is finished!");
 				} catch (SQLException e) {
@@ -94,9 +100,12 @@ public class RegisterCommand extends Command {
 						pr.println("User is existed! Change your login!");
 					else
 						throw new CommandSQLException(e.getMessage());
+				} catch(Exception e) {
+					throw new CommandException(e.getMessage());
 				} finally {
 					try {
-						con.close();
+						if(con != null)
+							con.close();
 					} catch (SQLException e1) {}
 				}
 			}

@@ -93,7 +93,12 @@ public class UpdateCommand extends Command {
 			StudyGroup sg = null;
 			
 			if (type.equals(ExecutionType.SERVER)) {
-				Connection con = env.getDbManager().getConnection();
+				Connection con = null;
+				try {
+					con = env.getDbManager().getConnection();
+				} catch (SQLException e2) {
+					throw new CommandSQLException("Failed to connect to database!");
+				}
 				try {
 					long id = Long.parseLong((String) args[0]);	
 					PreparedStatement stmt;
@@ -200,7 +205,8 @@ public class UpdateCommand extends Command {
 						throw new CommandException(e.getMessage());
 					} else {
 						try {
-							con.close();
+							if(con != null)
+								con.close();
 						} catch (SQLException e1) { }
 						throw new CommandRunningException("Unexcepted error! " + e.getMessage());
 					}
@@ -211,7 +217,11 @@ public class UpdateCommand extends Command {
 				Connection con;
 				PreparedStatement stmt;
 				long id = Long.parseLong((String) args[0]);
-				con = env.getDbManager().getConnection();
+				try {
+					con = env.getDbManager().getConnection();
+				} catch (SQLException e2) {
+					throw new CommandSQLException("Failed to connect to database!");
+				}
 				
 				try {
 					
