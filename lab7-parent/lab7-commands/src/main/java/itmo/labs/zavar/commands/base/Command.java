@@ -50,7 +50,7 @@ public abstract class Command {
 	 * </pre>
 	 * 
 	 * @param name command's name
-	 * @param args command's arguments (uses for showing help)
+	 * @param requiredArgs command's arguments (uses for showing help)
 	 */
 	public Command(String name, String... requiredArgs) {
 		this.name = name;
@@ -103,11 +103,11 @@ public abstract class Command {
 	/**
 	 * 
 	 * Returns string with usage in format: "Usage: " + name + " " +
-	 * {@link #getArgsAsString()}.
+	 * {@link #getRequiredArgsAsString()}.
 	 * 
 	 * @return {@link String}
-	 * 
-	 * @see #getArgsAsString()
+	 *
+	 * @see #getRequiredArgsAsString()
 	 */
 	public final String getUsage() {
 		return "Usage: " + name + " " + getRequiredArgsAsString();
@@ -175,7 +175,7 @@ public abstract class Command {
 	 * @author Zavar
 	 * @version 1.0
 	 */
-	public static enum ExecutionType
+	public enum ExecutionType
 	{
 		CLIENT,
 		SERVER,

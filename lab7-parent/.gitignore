@@ -1,3 +1,4 @@
+../.idea
 /target/
 /lab7-client/target/
 /lab7-commands/target/
@@ -15,3 +16,7 @@
 /lab7-commands/.project
 /lab7-server/.project
 /ClassDiagram.ucls
+/lab7-parent.iml
+/lab7-client/lab7-client.iml
+/lab7-commands/lab7-commands.iml
+/lab7-server/lab7-server.iml
